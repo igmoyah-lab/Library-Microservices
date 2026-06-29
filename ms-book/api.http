@@ -1,0 +1,42 @@
+@booksUrl = http://localhost:5001
+@bookId = REEMPLAZA_CON_UUID_REAL
+
+### Listar todos los libros
+GET {{booksUrl}}/api/books
+
+### Buscar libros por título
+GET {{booksUrl}}/api/books/search?title=Papelucho
+
+### Buscar libros por autor
+GET {{booksUrl}}/api/books/search?author=Robert
+
+### Buscar libros por ISBN
+GET {{booksUrl}}/api/books/search?isbn=978-1234567890
+
+### Buscar libro por ID
+GET {{booksUrl}}/api/books/328e76a-bf39-45c8-8dd3-d7e584eb7651
+
+### Crear libro
+POST {{booksUrl}}/api/books
+Content-Type: application/json
+
+{
+  "title": "Leguea Of legends",
+  "author": "Riot Games",
+  "category": "Videojuegos",
+  "isbn": "978-1234567890"
+}
+
+### Actualizar libro
+PUT {{booksUrl}}/api/books/32be76a-bf39-45c8-8dd3-d7e584eb7651
+Content-Type: application/json
+
+{
+  "title": "Clean Code Updated",
+  "author": "Robert C. Martin",
+  "category": "Programacion",
+  "isbn": "978-0132350884"
+}
+
+### Eliminar libro
+DELETE {{booksUrl}}/api/books/32be76a-bf39-45c8-8dd3-d7e584eb7651

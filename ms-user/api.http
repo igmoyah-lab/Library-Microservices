@@ -1,0 +1,19 @@
+@usersUrl = http://localhost:5002
+
+@userId = PEGA_AQUI_UUID_REAL
+
+### Obtener usuario por id protegido
+GET {{usersUrl}}/users/{{userId}}
+
+### Actualizar usuario por id protegido
+PUT {{usersUrl}}/profile/{{userId}}
+Content-Type: application/json  
+
+{
+  "fullName": "Bryan Updated",
+  "phone": "123456789",
+    "address": "Calle Actualizada 123"
+}
+
+### Eliminar usuario por id protegido
+DELETE {{usersUrl}}/users/{{userId}}

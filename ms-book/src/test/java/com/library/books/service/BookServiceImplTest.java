@@ -1,0 +1,264 @@
+package com.library.books.service;
+
+
+import com.library.books.dto.ApiResponse;
+import com.library.books.dto.BookDto;
+import com.library.books.dto.BookSearchDto;
+import com.library.books.entity.Book;
+import com.library.books.exception.ResourceNotFoundException;
+import com.library.books.repository.BookRepository;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class BookServiceImplTest {
+
+    @Mock
+    private BookRepository bookRepository;
+
+    @Test
+    void getBookById_shouldReturnBookWhenExists() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+        Book book = entity(id, "El Principito", "Antoine de Saint-Exupéry", "Literatura", "123456789");
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(book));
+
+        ApiResponse<BookDto> result = bookService.getBookById(id);
+
+        assertTrue(result.success());
+        assertNotNull(result.data());
+        assertEquals(id, result.data().id());
+        assertEquals("El Principito", result.data().title());
+        assertEquals("Libro encontrado con éxito", result.message());
+    }
+
+    @Test
+    void getBookById_shouldThrowExceptionWhenMissing() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException result = assertThrows(
+                ResourceNotFoundException.class,
+                () -> bookService.getBookById(id)
+        );
+
+        assertEquals("Libro no encontrado con id: " + id, result.getMessage());
+    }
+
+    @Test
+    void getAllBooks_shouldReturnListOfBooks() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        Book book1 = entity(UUID.randomUUID(), "El Principito", "Antoine de Saint-Exupéry", "Literatura", "123456789");
+        Book book2 = entity(UUID.randomUUID(), "Clean Code", "Robert C. Martin", "Programación", "987654321");
+
+        when(bookRepository.findAll()).thenReturn(List.of(book1, book2));
+
+        ApiResponse<List<BookDto>> result = bookService.getAllBooks();
+
+        assertTrue(result.success());
+        assertNotNull(result.data());
+        assertEquals(2, result.data().size());
+        assertEquals("El Principito", result.data().get(0).title());
+        assertEquals("Libros obtenidos con éxito", result.message());
+    }
+
+    @Test
+    void searchBooks_shouldReturnBooksByTitle() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        Book book1 = entity(UUID.randomUUID(), "El Principito", "Antoine de Saint-Exupéry", "Literatura", "123456789");
+        Book book2 = entity(UUID.randomUUID(), "Clean Code", "Robert C. Martin", "Programación", "987654321");
+
+        when(bookRepository.findAll()).thenReturn(List.of(book1, book2));
+
+        BookSearchDto searchDto = new BookSearchDto("principito", null, null, null);
+
+        ApiResponse<List<BookDto>> result = bookService.searchBooks(searchDto);
+
+        assertTrue(result.success());
+        assertNotNull(result.data());
+        assertEquals(1, result.data().size());
+        assertEquals("El Principito", result.data().get(0).title());
+        assertEquals("Libros encontrados con éxito", result.message());
+    }
+
+    @Test
+    void searchBooks_shouldReturnEmptyListWhenNoMatches() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        Book book1 = entity(UUID.randomUUID(), "El Principito", "Antoine de Saint-Exupéry", "Literatura", "123456789");
+
+        when(bookRepository.findAll()).thenReturn(List.of(book1));
+
+        BookSearchDto searchDto = new BookSearchDto("no existe", null, null, null);
+
+        ApiResponse<List<BookDto>> result = bookService.searchBooks(searchDto);
+
+        assertTrue(result.success());
+        assertNotNull(result.data());
+        assertEquals(0, result.data().size());
+        assertEquals("No se encontraron libros con los criterios de búsqueda proporcionados", result.message());
+    }
+
+    @Test
+    void createBook_shouldSaveAndReturnDto() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+
+        BookDto request = new BookDto(
+                null,
+                "Harry Potter",
+                "J. K. Rowling",
+                "Fantasía",
+                "111222333"
+        );
+
+        when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> {
+            Book bookToSave = invocation.getArgument(0);
+            bookToSave.setId(id);
+            return bookToSave;
+        });
+
+        ApiResponse<BookDto> result = bookService.createBook(request);
+
+        assertTrue(result.success());
+        assertNotNull(result.data());
+        assertEquals(id, result.data().id());
+        assertEquals("Harry Potter", result.data().title());
+        assertEquals("Libro creado con éxito", result.message());
+
+        ArgumentCaptor<Book> captor = ArgumentCaptor.forClass(Book.class);
+
+        verify(bookRepository).save(captor.capture());
+
+        assertEquals("Harry Potter", captor.getValue().getTitle());
+        assertEquals("J. K. Rowling", captor.getValue().getAuthor());
+        assertEquals("Fantasía", captor.getValue().getCategory());
+        assertEquals("111222333", captor.getValue().getIsbn());
+    }
+
+    @Test
+    void updateBook_shouldUpdateAndReturnDtoWhenExists() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+
+        Book existingBook = entity(id, "Libro Antiguo", "Autor Antiguo", "Antigua", "000000");
+
+        BookDto request = new BookDto(
+                id,
+                "Libro Actualizado",
+                "Autor Nuevo",
+                "Nueva Categoría",
+                "999999"
+        );
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(existingBook));
+
+        when(bookRepository.save(any(Book.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ApiResponse<BookDto> result = bookService.updateBook(id, request);
+
+        assertTrue(result.success());
+        assertNotNull(result.data());
+        assertEquals("Libro Actualizado", result.data().title());
+        assertEquals("Autor Nuevo", result.data().author());
+        assertEquals("Nueva Categoría", result.data().category());
+        assertEquals("999999", result.data().isbn());
+        assertEquals("Libro actualizado con éxito", result.message());
+
+        verify(bookRepository).save(existingBook);
+    }
+
+    @Test
+    void updateBook_shouldThrowExceptionWhenMissing() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+
+        BookDto request = new BookDto(
+                id,
+                "Libro Actualizado",
+                "Autor Nuevo",
+                "Nueva Categoría",
+                "999999"
+        );
+
+        when(bookRepository.findById(id)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException result = assertThrows(
+                ResourceNotFoundException.class,
+                () -> bookService.updateBook(id, request)
+        );
+
+        assertEquals("Book not found with id: " + id, result.getMessage());
+    }
+
+    @Test
+    void deleteBook_shouldDeleteWhenExists() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+        Book book = entity(id, "Clean Code", "Robert C. Martin", "Programación", "987654321");
+
+        when(bookRepository.findById(id)).thenReturn(Optional.of(book));
+
+        ApiResponse<Void> result = bookService.deleteBook(id);
+
+        assertTrue(result.success());
+        assertEquals("Libro eliminado con éxito", result.message());
+
+        verify(bookRepository).delete(book);
+    }
+
+    @Test
+    void deleteBook_shouldThrowExceptionWhenMissing() {
+        BookServiceImpl bookService = new BookServiceImpl(bookRepository);
+
+        UUID id = UUID.randomUUID();
+
+        when(bookRepository.findById(id)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException result = assertThrows(
+                ResourceNotFoundException.class,
+                () -> bookService.deleteBook(id)
+        );
+
+        assertEquals("Book not found with id: " + id, result.getMessage());
+    }
+
+    private Book entity(UUID id, String title, String author, String category, String isbn) {
+        Book book = new Book();
+        book.setId(id);
+        book.setTitle(title);
+        book.setAuthor(author);
+        book.setCategory(category);
+        book.setIsbn(isbn);
+        return book;
+    }
+}

@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:5003
+
+### Login usuario semilla
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "asdasd@mail.cl",
+  "password": "abcd.1234"
+}
+
+### Register nuevo usuario
+POST {{baseUrl}}/register
+Content-Type: application/json  
+
+{
+  "email": "baasdasd@mail.cl",
+  "password": "abcd.1234"
+} 

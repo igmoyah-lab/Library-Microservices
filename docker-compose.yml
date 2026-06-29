@@ -1,0 +1,58 @@
+services:
+  auth-postgres:
+    image: postgres:17-alpine
+    container_name: auth-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: authdb
+      POSTGRES_USER: authuser
+      POSTGRES_PASSWORD: authpass
+    ports:
+      - "3003:5432"
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authuser -d authdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgresbook:
+    image: postgres:17-alpine
+    container_name: book-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: book
+      POSTGRES_USER: book
+      POSTGRES_PASSWORD: book
+    ports:
+      - "3001:5432"
+    volumes:
+      - postgres_data_book:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U book -d book" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  postgresuser:
+    image: postgres:17-alpine
+    container_name: user-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: user
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: user
+    ports:
+      - "3002:5432"
+    volumes:
+      - postgres_data_user:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U user -d user" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data_book:
+  postgres_data_user:
+  auth_postgres_data:

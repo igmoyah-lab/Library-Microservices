@@ -1,0 +1,94 @@
+@baseUrl = http://localhost:5000
+@token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ3YWxhbGFAZ21haWwuY2wiLCJpYXQiOjE3ODIwMDk1MjYsImV4cCI6MTc4MjA5NTkyNn0.v8B8pbldaecVnQ6KcIn2qG9StdofrmH2J0FiUlQBqXY
+@bookId = 9f17e258-1676-4d43-8f4e-d11a119bacf1
+
+@userId = PEGA_AQUI_UUID_REAL
+
+### Login publico
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{
+  "email": "walala@gmail.cl",
+  "password": "abcd.1234"
+}
+
+### Register publico
+POST {{baseUrl}}/register
+Content-Type: application/json
+
+{
+  "email": "walala@gmail.cl",
+  "password": "abcd.1234"
+}
+
+### Listar libros protegido
+GET {{baseUrl}}/books
+Authorization: Bearer {{token}}
+
+### Buscar libros por título protegido
+GET {{baseUrl}}/books/search?title=Clean
+Authorization: Bearer {{token}}
+
+### Buscar libros por autor protegido
+GET {{baseUrl}}/books/search?author=bryan
+Authorization: Bearer {{token}}
+
+### Buscar libros por ISBN protegido
+GET {{baseUrl}}/books/search?isbn=9780201633610
+Authorization: Bearer {{token}}
+
+### Crear libro protegido
+POST {{baseUrl}}/books
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "en busca de la felicidad222222",
+  "author": "bryansss",
+  "category": "lecturaadas",
+  "isbn": "44545345"
+}
+
+### Obtener libro por id protegido
+GET {{baseUrl}}/books/{{bookId}}
+Authorization: Bearer {{token}}
+
+### Actualizar libro por id protegido
+PUT {{baseUrl}}/books/{{bookId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "title": "refactoring 2 ",
+  "author": "maritn flowes",
+  "category": "sofware",
+  "isbn": "4462312312312321"
+}
+
+### Eliminar libro por id protegido
+DELETE {{baseUrl}}/books/{{bookId}}
+Authorization: Bearer {{token}}
+
+
+
+//////////////////////////////////////////USERS//////////////////////////////////////////
+
+### Listar perfiles protegido
+GET {{baseUrl}}/users
+Authorization: Bearer {{token}}
+
+### Actualizar o completar perfil protegido
+PUT {{baseUrl}}/users/profile
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "fullName": "gustavo pio 2 actualizado",
+  "phone": "912345678222",
+  "address": "Puente Alto 2, Chile"
+}
+
+### Eliminar perfil protegido
+DELETE {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{token}}
