@@ -1,0 +1,15 @@
+services:
+  postgres-returns:
+    image: postgres:16-alpine
+    container_name: postgres-returns
+    environment:
+      POSTGRES_DB: returns
+      POSTGRES_USER: returns
+      POSTGRES_PASSWORD: returns
+    ports:
+      - "3005:5432"
+    volumes:
+      - returns_data:/var/lib/postgresql/data
+
+volumes:
+  returns_data:

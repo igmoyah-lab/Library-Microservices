@@ -1,4 +1,5 @@
 services:
+  #BASE DE DATOS PARA EL MICROSERVICIO DE AUTH
   auth-postgres:
     image: postgres:17-alpine
     container_name: auth-postgres
@@ -17,6 +18,7 @@ services:
       timeout: 5s
       retries: 5
 
+  #BASE DE DATOS PARA EL MICROSERVICIO DE BOOK
   postgresbook:
     image: postgres:17-alpine
     container_name: book-postgres
@@ -34,6 +36,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  #BASE DE DATOS PARA EL MICROSERVICIO DE USER    
   postgresuser:
     image: postgres:17-alpine
     container_name: user-postgres
@@ -52,7 +56,55 @@ services:
       timeout: 5s
       retries: 5
 
+  #BASE DE DATOS PARA EL MICROSERVICIO DE LOANS
+  loans-postgres:
+    image: postgres:17-alpine
+    container_name: loans-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: loans
+      POSTGRES_USER: loans
+      POSTGRES_PASSWORD: loans
+    ports:
+      - "3004:5432"
+    volumes:
+      - postgres_data_loans:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loans -d loans"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  #BASE DE DATOS PARA EL MICROSERVICIO DE RETURNS
+  postgres-returns:
+    image: postgres:17-alpine
+    container_name: postgres-returns
+    environment:
+      POSTGRES_DB: returns
+      POSTGRES_USER: returns
+      POSTGRES_PASSWORD: returns
+    ports:
+      - "3005:5432"
+    volumes:
+      - returns_data:/var/lib/postgresql/data
+  
+  #BASE DE DATOS PARA EL MICROSERVICIO DE RESERVATIONS
+  postgres-reservations:
+    image: postgres:17-alpine
+    container_name: postgres-reservations
+    environment:
+      POSTGRES_DB: reservations
+      POSTGRES_USER: reservations
+      POSTGRES_PASSWORD: reservations
+    ports:
+      - "5437:5432"
+    volumes:
+      - reservations_data:/var/lib/postgresql/data
+
 volumes:
   postgres_data_book:
   postgres_data_user:
   auth_postgres_data:
+  postgres_data_loans:
+  returns_data:
+  reservations_data:
