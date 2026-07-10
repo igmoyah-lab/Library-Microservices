@@ -1,0 +1,20 @@
+### Crear una notificación
+POST http://localhost:8087/api/notifications
+Content-Type: application/json
+
+{
+  "userId": "11111111-1111-1111-1111-111111111111",
+  "message": "Tu préstamo vence mañana."
+}
+
+### Crear otra notificación
+POST http://localhost:8087/api/notifications
+Content-Type: application/json
+
+{
+  "userId": "11111111-1111-1111-1111-111111111111",
+  "message": "Tu reserva fue registrada correctamente."
+}
+
+### Consultar notificaciones del usuario
+GET http://localhost:8087/api/notifications/user/11111111-1111-1111-1111-111111111111

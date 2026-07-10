@@ -12,4 +12,6 @@ public interface LoanService {
     ApiResponse<LoanResponse> createLoan(LoanRequest loanRequest);
 
     ApiResponse<List<LoanResponse>> getLoansByUserId(UUID userId);
+
+    long countLoans();
 }

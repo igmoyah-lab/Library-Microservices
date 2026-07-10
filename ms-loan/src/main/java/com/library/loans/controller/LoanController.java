@@ -49,4 +49,16 @@ public class LoanController {
                 loanService.getLoansByUserId(userId)
         );
     }
+
+    @GetMapping("/count")
+    public ResponseEntity<ApiResponse<Long>> countLoans() {
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        loanService.countLoans(),
+                        "Cantidad de préstamos obtenida con éxito"
+                )
+        );
+}
 }

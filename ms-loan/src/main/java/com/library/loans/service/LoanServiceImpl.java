@@ -82,4 +82,9 @@ public class LoanServiceImpl implements LoanService {
                 loan.getStatus()
         );
     }
+
+    @Override
+    public long countLoans() {
+        return loanRepository.count();
+}
 }

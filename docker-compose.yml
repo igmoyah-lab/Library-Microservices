@@ -97,14 +97,42 @@ services:
       POSTGRES_USER: reservations
       POSTGRES_PASSWORD: reservations
     ports:
-      - "5437:5432"
+      - "3006:5432"
     volumes:
       - reservations_data:/var/lib/postgresql/data
+  
+  #BASE DE DATOS PARA MICROSERVICIO DE FINE
+  postgres-fine:
+    image: postgres:17-alpine
+    container_name: postgres-fine
+    environment:
+      POSTGRES_DB: fine
+      POSTGRES_USER: fine
+      POSTGRES_PASSWORD: fine
+    ports:
+      - "3007:5432"
+    volumes:
+      - fine_data:/var/lib/postgresql/data
+    
+  #BASE DE DATOS PARA EL MICROSERVICIO DE NOTIFICATIONS
+  postgres-notifications:
+    image: postgres:17-alpine
+    container_name: postgres-notifications
+    environment:
+      POSTGRES_DB: notifications
+      POSTGRES_USER: notifications
+      POSTGRES_PASSWORD: notifications
+    ports:
+      - "3008:5432"
+    volumes:
+      - notifications_data:/var/lib/postgresql/data
 
 volumes:
   postgres_data_book:
   postgres_data_user:
   auth_postgres_data:
+  fine_data:
   postgres_data_loans:
   returns_data:
   reservations_data:
+  notifications_data:
