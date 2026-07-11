@@ -1,7 +1,6 @@
 package com.library.loans.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -40,382 +39,548 @@ import com.library.loans.repository.LoanRepository;
 @ExtendWith(MockitoExtension.class)
 class LoanServiceImplTest {
 
-    @Mock
-    private LoanRepository loanRepository;
+@Mock
+private LoanRepository loanRepository;
 
-    @Mock
-    private UserClient userClient;
+@Mock
+private UserClient userClient;
 
-    @Mock
-    private BookClient bookClient;
+@Mock
+private BookClient bookClient;
 
-    @Test
-    void createLoan_shouldCreateLoanAndMarkBookUnavailable() {
-        LoanServiceImpl loanService = createService();
+@Test
+void createLoan_shouldCreateLoanAndMarkBookUnavailable() {
+LoanServiceImpl loanService = createService();
 
-        UUID userId = UUID.randomUUID();
-        UUID bookId = UUID.randomUUID();
-        UUID loanId = UUID.randomUUID();
+UUID userId = UUID.randomUUID();
+UUID bookId = UUID.randomUUID();
+UUID loanId = UUID.randomUUID();
 
-        LoanRequest request = new LoanRequest(
-                userId,
-                bookId
-        );
+LoanRequest request = new LoanRequest(
+        userId,
+        bookId
+);
 
-        UserClientResponse user = userResponse(userId);
+UserClientResponse user = userResponse(userId);
 
-        BookClientResponse availableBook =
-                bookResponse(bookId, true);
+BookClientResponse availableBook =
+        bookResponse(bookId, true);
 
-        BookClientResponse unavailableBook =
-                bookResponse(bookId, false);
+BookClientResponse unavailableBook =
+        bookResponse(bookId, false);
 
-        when(userClient.getUserById(userId))
-                .thenReturn(user);
+when(userClient.getUserById(userId))
+        .thenReturn(user);
 
-        when(bookClient.getBookById(bookId))
-                .thenReturn(availableBook);
+when(bookClient.getBookById(bookId))
+        .thenReturn(availableBook);
 
-        when(
-                loanRepository.existsByBookIdAndStatus(
-                        bookId,
-                        LoanStatus.ACTIVE
-                )
-        ).thenReturn(false);
-
-        when(loanRepository.save(any(Loan.class)))
-                .thenAnswer(invocation -> {
-                    Loan loan = invocation.getArgument(0);
-                    loan.setId(loanId);
-                    return loan;
-                });
-
-        when(bookClient.updateAvailability(bookId, false))
-                .thenReturn(unavailableBook);
-
-        ApiResponse<LoanResponse> result =
-                loanService.createLoan(request);
-
-        assertTrue(result.success());
-        assertNotNull(result.data());
-        assertEquals(loanId, result.data().id());
-        assertEquals(userId, result.data().userId());
-        assertEquals(bookId, result.data().bookId());
-        assertEquals(
-                LoanStatus.ACTIVE,
-                result.data().status()
-        );
-        assertEquals(
-                result.data().loanDate().plusDays(7),
-                result.data().dueDate()
-        );
-        assertEquals(
-                "Préstamo creado con éxito",
-                result.message()
-        );
-
-        ArgumentCaptor<Loan> loanCaptor =
-                ArgumentCaptor.forClass(Loan.class);
-
-        verify(loanRepository).save(
-                loanCaptor.capture()
-        );
-
-        Loan savedLoan = loanCaptor.getValue();
-
-        assertEquals(userId, savedLoan.getUserId());
-        assertEquals(bookId, savedLoan.getBookId());
-        assertEquals(
-                LoanStatus.ACTIVE,
-                savedLoan.getStatus()
-        );
-        assertNotNull(savedLoan.getLoanDate());
-        assertEquals(
-                savedLoan.getLoanDate().plusDays(7),
-                savedLoan.getDueDate()
-        );
-
-        verify(userClient).getUserById(userId);
-        verify(bookClient).getBookById(bookId);
-        verify(bookClient).updateAvailability(
+when(
+        loanRepository.existsByBookIdAndStatus(
                 bookId,
-                false
-        );
-    }
-
-    @Test
-    void createLoan_shouldRejectBookWithActiveLoan() {
-        LoanServiceImpl loanService = createService();
-
-        UUID userId = UUID.randomUUID();
-        UUID bookId = UUID.randomUUID();
-
-        LoanRequest request = new LoanRequest(
-                userId,
-                bookId
-        );
-
-        when(userClient.getUserById(userId))
-                .thenReturn(userResponse(userId));
-
-        when(bookClient.getBookById(bookId))
-                .thenReturn(bookResponse(bookId, true));
-
-        when(
-                loanRepository.existsByBookIdAndStatus(
-                        bookId,
-                        LoanStatus.ACTIVE
-                )
-        ).thenReturn(true);
-
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> loanService.createLoan(request)
-        );
-
-        assertEquals(
-                "El libro ya posee un préstamo activo",
-                exception.getMessage()
-        );
-
-        verify(loanRepository, never())
-                .save(any(Loan.class));
-
-        verify(bookClient, never())
-                .updateAvailability(bookId, false);
-    }
-
-    @Test
-    void createLoan_shouldRejectUnavailableBook() {
-        LoanServiceImpl loanService = createService();
-
-        UUID userId = UUID.randomUUID();
-        UUID bookId = UUID.randomUUID();
-
-        LoanRequest request = new LoanRequest(
-                userId,
-                bookId
-        );
-
-        when(userClient.getUserById(userId))
-                .thenReturn(userResponse(userId));
-
-        when(bookClient.getBookById(bookId))
-                .thenReturn(bookResponse(bookId, false));
-
-        when(
-                loanRepository.existsByBookIdAndStatus(
-                        bookId,
-                        LoanStatus.ACTIVE
-                )
-        ).thenReturn(false);
-
-        BusinessRuleException exception = assertThrows(
-                BusinessRuleException.class,
-                () -> loanService.createLoan(request)
-        );
-
-        assertEquals(
-                "El libro no se encuentra disponible",
-                exception.getMessage()
-        );
-
-        verify(loanRepository, never())
-                .save(any(Loan.class));
-
-        verify(bookClient, never())
-                .updateAvailability(bookId, false);
-    }
-
-    @Test
-    void createLoan_shouldDeleteLoanWhenBookUpdateFails() {
-        LoanServiceImpl loanService = createService();
-
-        UUID userId = UUID.randomUUID();
-        UUID bookId = UUID.randomUUID();
-        UUID loanId = UUID.randomUUID();
-
-        LoanRequest request = new LoanRequest(
-                userId,
-                bookId
-        );
-
-        when(userClient.getUserById(userId))
-                .thenReturn(userResponse(userId));
-
-        when(bookClient.getBookById(bookId))
-                .thenReturn(bookResponse(bookId, true));
-
-        when(
-                loanRepository.existsByBookIdAndStatus(
-                        bookId,
-                        LoanStatus.ACTIVE
-                )
-        ).thenReturn(false);
-
-        when(loanRepository.save(any(Loan.class)))
-                .thenAnswer(invocation -> {
-                    Loan loan = invocation.getArgument(0);
-                    loan.setId(loanId);
-                    return loan;
-                });
-
-        ExternalServiceException externalException =
-                new ExternalServiceException(
-                        "No fue posible actualizar el libro en ms-book"
-                );
-
-        when(bookClient.updateAvailability(bookId, false))
-                .thenThrow(externalException);
-
-        ExternalServiceException result = assertThrows(
-                ExternalServiceException.class,
-                () -> loanService.createLoan(request)
-        );
-
-        assertEquals(
-                "No fue posible actualizar el libro en ms-book",
-                result.getMessage()
-        );
-
-        ArgumentCaptor<Loan> loanCaptor =
-                ArgumentCaptor.forClass(Loan.class);
-
-        verify(loanRepository).delete(
-                loanCaptor.capture()
-        );
-
-        assertEquals(
-                loanId,
-                loanCaptor.getValue().getId()
-        );
-    }
-
-    @Test
-    void getLoansByUserId_shouldReturnLoans() {
-        LoanServiceImpl loanService = createService();
-
-        UUID userId = UUID.randomUUID();
-
-        Loan firstLoan = loanEntity(
-                UUID.randomUUID(),
-                userId,
-                UUID.randomUUID(),
                 LoanStatus.ACTIVE
-        );
+        )
+).thenReturn(false);
 
-        Loan secondLoan = loanEntity(
-                UUID.randomUUID(),
-                userId,
-                UUID.randomUUID(),
-                LoanStatus.RETURNED
-        );
-
-        when(loanRepository.findByUserId(userId))
-                .thenReturn(
-                        List.of(firstLoan, secondLoan)
-                );
-
-        ApiResponse<List<LoanResponse>> result =
-                loanService.getLoansByUserId(userId);
-
-        assertTrue(result.success());
-        assertNotNull(result.data());
-        assertEquals(2, result.data().size());
-        assertEquals(
-                userId,
-                result.data().get(0).userId()
-        );
-        assertEquals(
-                "Préstamos obtenidos con éxito",
-                result.message()
-        );
-    }
-
-    @Test
-    void getLoansByUserId_shouldThrowWhenNoLoansExist() {
-        LoanServiceImpl loanService = createService();
-
-        UUID userId = UUID.randomUUID();
-
-        when(loanRepository.findByUserId(userId))
-                .thenReturn(List.of());
-
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> loanService.getLoansByUserId(userId)
-        );
-
-        assertEquals(
-                "No se encontraron préstamos para "
-                        + "el usuario con id: "
-                        + userId,
-                exception.getMessage()
-        );
-    }
-
-    @Test
-    void countLoans_shouldReturnRepositoryCount() {
-        LoanServiceImpl loanService = createService();
-
-        when(loanRepository.count())
-                .thenReturn(12L);
-
-        long result = loanService.countLoans();
-
-        assertEquals(12L, result);
-        verify(loanRepository).count();
-    }
-
-    private LoanServiceImpl createService() {
-        return new LoanServiceImpl(
-                loanRepository,
-                userClient,
-                bookClient
-        );
-    }
-
-    private UserClientResponse userResponse(UUID userId) {
-        return new UserClientResponse(
-                userId,
-                "usuario@correo.cl",
-                "Usuario Prueba",
-                "912345678",
-                "Santiago"
-        );
-    }
-
-    private BookClientResponse bookResponse(
-            UUID bookId,
-            boolean available
-    ) {
-        return new BookClientResponse(
-                bookId,
-                "El Principito",
-                "Antoine de Saint-Exupéry",
-                "Literatura",
-                "123456789",
-                available
-        );
-    }
-
-    private Loan loanEntity(
-            UUID loanId,
-            UUID userId,
-            UUID bookId,
-            LoanStatus status
-    ) {
-        Loan loan = new Loan();
-
-        LocalDate loanDate = LocalDate.now();
-
+when(loanRepository.save(any(Loan.class)))
+        .thenAnswer(invocation -> {
+        Loan loan = invocation.getArgument(0);
         loan.setId(loanId);
-        loan.setUserId(userId);
-        loan.setBookId(bookId);
-        loan.setLoanDate(loanDate);
-        loan.setDueDate(loanDate.plusDays(7));
-        loan.setStatus(status);
-
         return loan;
-    }
+        });
+
+when(bookClient.updateAvailability(bookId, false))
+        .thenReturn(unavailableBook);
+
+ApiResponse<LoanResponse> result =
+        loanService.createLoan(request);
+
+assertTrue(result.success());
+assertNotNull(result.data());
+assertEquals(loanId, result.data().id());
+assertEquals(userId, result.data().userId());
+assertEquals(bookId, result.data().bookId());
+assertEquals(
+        LoanStatus.ACTIVE,
+        result.data().status()
+);
+assertEquals(
+        result.data().loanDate().plusDays(7),
+        result.data().dueDate()
+);
+assertEquals(
+        "Préstamo creado con éxito",
+        result.message()
+);
+
+ArgumentCaptor<Loan> loanCaptor =
+        ArgumentCaptor.forClass(Loan.class);
+
+verify(loanRepository).save(
+        loanCaptor.capture()
+);
+
+Loan savedLoan = loanCaptor.getValue();
+
+assertEquals(userId, savedLoan.getUserId());
+assertEquals(bookId, savedLoan.getBookId());
+assertEquals(
+        LoanStatus.ACTIVE,
+        savedLoan.getStatus()
+);
+assertNotNull(savedLoan.getLoanDate());
+assertEquals(
+        savedLoan.getLoanDate().plusDays(7),
+        savedLoan.getDueDate()
+);
+
+verify(userClient).getUserById(userId);
+verify(bookClient).getBookById(bookId);
+verify(bookClient).updateAvailability(
+        bookId,
+        false
+);
+}
+
+@Test
+void createLoan_shouldRejectBookWithActiveLoan() {
+LoanServiceImpl loanService = createService();
+
+UUID userId = UUID.randomUUID();
+UUID bookId = UUID.randomUUID();
+
+LoanRequest request = new LoanRequest(
+        userId,
+        bookId
+);
+
+when(userClient.getUserById(userId))
+        .thenReturn(userResponse(userId));
+
+when(bookClient.getBookById(bookId))
+        .thenReturn(bookResponse(bookId, true));
+
+when(
+        loanRepository.existsByBookIdAndStatus(
+                bookId,
+                LoanStatus.ACTIVE
+        )
+).thenReturn(true);
+
+BusinessRuleException exception = assertThrows(
+        BusinessRuleException.class,
+        () -> loanService.createLoan(request)
+);
+
+assertEquals(
+        "El libro ya posee un préstamo activo",
+        exception.getMessage()
+);
+
+verify(loanRepository, never())
+        .save(any(Loan.class));
+
+verify(bookClient, never())
+        .updateAvailability(bookId, false);
+}
+
+@Test
+void createLoan_shouldRejectUnavailableBook() {
+LoanServiceImpl loanService = createService();
+
+UUID userId = UUID.randomUUID();
+UUID bookId = UUID.randomUUID();
+
+LoanRequest request = new LoanRequest(
+        userId,
+        bookId
+);
+
+when(userClient.getUserById(userId))
+        .thenReturn(userResponse(userId));
+
+when(bookClient.getBookById(bookId))
+        .thenReturn(bookResponse(bookId, false));
+
+when(
+        loanRepository.existsByBookIdAndStatus(
+                bookId,
+                LoanStatus.ACTIVE
+        )
+).thenReturn(false);
+
+BusinessRuleException exception = assertThrows(
+        BusinessRuleException.class,
+        () -> loanService.createLoan(request)
+);
+
+assertEquals(
+        "El libro no se encuentra disponible",
+        exception.getMessage()
+);
+
+verify(loanRepository, never())
+        .save(any(Loan.class));
+
+verify(bookClient, never())
+        .updateAvailability(bookId, false);
+}
+
+@Test
+void createLoan_shouldDeleteLoanWhenBookUpdateFails() {
+LoanServiceImpl loanService = createService();
+
+UUID userId = UUID.randomUUID();
+UUID bookId = UUID.randomUUID();
+UUID loanId = UUID.randomUUID();
+
+LoanRequest request = new LoanRequest(
+        userId,
+        bookId
+);
+
+when(userClient.getUserById(userId))
+        .thenReturn(userResponse(userId));
+
+when(bookClient.getBookById(bookId))
+        .thenReturn(bookResponse(bookId, true));
+
+when(
+        loanRepository.existsByBookIdAndStatus(
+                bookId,
+                LoanStatus.ACTIVE
+        )
+).thenReturn(false);
+
+when(loanRepository.save(any(Loan.class)))
+        .thenAnswer(invocation -> {
+        Loan loan = invocation.getArgument(0);
+        loan.setId(loanId);
+        return loan;
+        });
+
+ExternalServiceException externalException =
+        new ExternalServiceException(
+                "No fue posible actualizar el libro en ms-book"
+        );
+
+when(bookClient.updateAvailability(bookId, false))
+        .thenThrow(externalException);
+
+ExternalServiceException result = assertThrows(
+        ExternalServiceException.class,
+        () -> loanService.createLoan(request)
+);
+
+assertEquals(
+        "No fue posible actualizar el libro en ms-book",
+        result.getMessage()
+);
+
+ArgumentCaptor<Loan> loanCaptor =
+        ArgumentCaptor.forClass(Loan.class);
+
+verify(loanRepository).delete(
+        loanCaptor.capture()
+);
+
+assertEquals(
+        loanId,
+        loanCaptor.getValue().getId()
+);
+}
+
+@Test
+void getLoanById_shouldReturnLoanWhenExists() {
+LoanServiceImpl loanService = createService();
+
+UUID loanId = UUID.randomUUID();
+UUID userId = UUID.randomUUID();
+UUID bookId = UUID.randomUUID();
+
+Loan loan = loanEntity(
+        loanId,
+        userId,
+        bookId,
+        LoanStatus.ACTIVE
+);
+
+when(loanRepository.findById(loanId))
+        .thenReturn(Optional.of(loan));
+
+ApiResponse<LoanResponse> result =
+        loanService.getLoanById(loanId);
+
+assertTrue(result.success());
+assertNotNull(result.data());
+assertEquals(loanId, result.data().id());
+assertEquals(userId, result.data().userId());
+assertEquals(bookId, result.data().bookId());
+assertEquals(
+        LoanStatus.ACTIVE,
+        result.data().status()
+);
+assertEquals(
+        "Préstamo obtenido con éxito",
+        result.message()
+);
+
+verify(loanRepository).findById(loanId);
+}
+
+@Test
+void getLoanById_shouldThrowExceptionWhenMissing() {
+LoanServiceImpl loanService = createService();
+
+UUID loanId = UUID.randomUUID();
+
+when(loanRepository.findById(loanId))
+        .thenReturn(Optional.empty());
+
+ResourceNotFoundException exception = assertThrows(
+        ResourceNotFoundException.class,
+        () -> loanService.getLoanById(loanId)
+);
+
+assertEquals(
+        "Préstamo no encontrado con id: " + loanId,
+        exception.getMessage()
+);
+
+verify(loanRepository).findById(loanId);
+}
+
+@Test
+void getLoansByUserId_shouldReturnLoans() {
+LoanServiceImpl loanService = createService();
+
+UUID userId = UUID.randomUUID();
+
+Loan firstLoan = loanEntity(
+        UUID.randomUUID(),
+        userId,
+        UUID.randomUUID(),
+        LoanStatus.ACTIVE
+);
+
+Loan secondLoan = loanEntity(
+        UUID.randomUUID(),
+        userId,
+        UUID.randomUUID(),
+        LoanStatus.RETURNED
+);
+
+when(loanRepository.findByUserId(userId))
+        .thenReturn(
+                List.of(firstLoan, secondLoan)
+        );
+
+ApiResponse<List<LoanResponse>> result =
+        loanService.getLoansByUserId(userId);
+
+assertTrue(result.success());
+assertNotNull(result.data());
+assertEquals(2, result.data().size());
+assertEquals(
+        userId,
+        result.data().get(0).userId()
+);
+assertEquals(
+        "Préstamos obtenidos con éxito",
+        result.message()
+);
+}
+
+@Test
+void getLoansByUserId_shouldThrowWhenNoLoansExist() {
+LoanServiceImpl loanService = createService();
+
+UUID userId = UUID.randomUUID();
+
+when(loanRepository.findByUserId(userId))
+        .thenReturn(List.of());
+
+ResourceNotFoundException exception = assertThrows(
+        ResourceNotFoundException.class,
+        () -> loanService.getLoansByUserId(userId)
+);
+
+assertEquals(
+        "No se encontraron préstamos para "
+                + "el usuario con id: "
+                + userId,
+        exception.getMessage()
+);
+}
+
+@Test
+void markLoanAsReturned_shouldUpdateLoanStatus() {
+LoanServiceImpl loanService = createService();
+
+UUID loanId = UUID.randomUUID();
+UUID userId = UUID.randomUUID();
+UUID bookId = UUID.randomUUID();
+
+Loan activeLoan = loanEntity(
+        loanId,
+        userId,
+        bookId,
+        LoanStatus.ACTIVE
+);
+
+when(loanRepository.findById(loanId))
+        .thenReturn(Optional.of(activeLoan));
+
+when(loanRepository.save(any(Loan.class)))
+        .thenAnswer(invocation ->
+                invocation.getArgument(0)
+        );
+
+ApiResponse<LoanResponse> result =
+        loanService.markLoanAsReturned(loanId);
+
+assertTrue(result.success());
+assertNotNull(result.data());
+assertEquals(loanId, result.data().id());
+assertEquals(userId, result.data().userId());
+assertEquals(bookId, result.data().bookId());
+assertEquals(
+        LoanStatus.RETURNED,
+        result.data().status()
+);
+assertEquals(
+        LoanStatus.RETURNED,
+        activeLoan.getStatus()
+);
+assertEquals(
+        "Préstamo marcado como devuelto",
+        result.message()
+);
+
+verify(loanRepository).findById(loanId);
+verify(loanRepository).save(activeLoan);
+}
+
+@Test
+void markLoanAsReturned_shouldRejectAlreadyReturnedLoan() {
+LoanServiceImpl loanService = createService();
+
+UUID loanId = UUID.randomUUID();
+
+Loan returnedLoan = loanEntity(
+        loanId,
+        UUID.randomUUID(),
+        UUID.randomUUID(),
+        LoanStatus.RETURNED
+);
+
+when(loanRepository.findById(loanId))
+        .thenReturn(Optional.of(returnedLoan));
+
+BusinessRuleException exception = assertThrows(
+        BusinessRuleException.class,
+        () -> loanService.markLoanAsReturned(loanId)
+);
+
+assertEquals(
+        "El préstamo ya se encuentra devuelto",
+        exception.getMessage()
+);
+
+verify(loanRepository).findById(loanId);
+
+verify(loanRepository, never())
+        .save(any(Loan.class));
+}
+
+@Test
+void markLoanAsReturned_shouldThrowExceptionWhenMissing() {
+LoanServiceImpl loanService = createService();
+
+UUID loanId = UUID.randomUUID();
+
+when(loanRepository.findById(loanId))
+        .thenReturn(Optional.empty());
+
+ResourceNotFoundException exception = assertThrows(
+        ResourceNotFoundException.class,
+        () -> loanService.markLoanAsReturned(loanId)
+);
+
+assertEquals(
+        "Préstamo no encontrado con id: " + loanId,
+        exception.getMessage()
+);
+
+verify(loanRepository).findById(loanId);
+
+verify(loanRepository, never())
+        .save(any(Loan.class));
+}
+
+@Test
+void countLoans_shouldReturnRepositoryCount() {
+LoanServiceImpl loanService = createService();
+
+when(loanRepository.count())
+        .thenReturn(12L);
+
+long result = loanService.countLoans();
+
+assertEquals(12L, result);
+verify(loanRepository).count();
+}
+
+private LoanServiceImpl createService() {
+return new LoanServiceImpl(
+        loanRepository,
+        userClient,
+        bookClient
+);
+}
+
+private UserClientResponse userResponse(UUID userId) {
+return new UserClientResponse(
+        userId,
+        "usuario@correo.cl",
+        "Usuario Prueba",
+        "912345678",
+        "Santiago"
+);
+}
+
+private BookClientResponse bookResponse(
+UUID bookId,
+boolean available
+) {
+return new BookClientResponse(
+        bookId,
+        "El Principito",
+        "Antoine de Saint-Exupéry",
+        "Literatura",
+        "123456789",
+        available
+);
+}
+
+private Loan loanEntity(
+UUID loanId,
+UUID userId,
+UUID bookId,
+LoanStatus status
+) {
+Loan loan = new Loan();
+
+LocalDate loanDate = LocalDate.now();
+
+loan.setId(loanId);
+loan.setUserId(userId);
+loan.setBookId(bookId);
+loan.setLoanDate(loanDate);
+loan.setDueDate(loanDate.plusDays(7));
+loan.setStatus(status);
+
+return loan;
+}
+
 }

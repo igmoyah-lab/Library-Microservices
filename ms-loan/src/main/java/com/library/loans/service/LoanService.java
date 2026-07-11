@@ -21,6 +21,16 @@ public interface LoanService {
     );
 
     /**
+     * Obtiene un préstamo mediante su identificador.
+     *
+     * @param loanId identificador del préstamo
+     * @return respuesta con el préstamo encontrado
+     */
+    ApiResponse<LoanResponse> getLoanById(
+            UUID loanId
+    );
+
+    /**
      * Obtiene los préstamos pertenecientes a un usuario.
      *
      * @param userId identificador del usuario
@@ -28,6 +38,16 @@ public interface LoanService {
      */
     ApiResponse<List<LoanResponse>> getLoansByUserId(
             UUID userId
+    );
+
+    /**
+     * Marca un préstamo como devuelto.
+     *
+     * @param loanId identificador del préstamo
+     * @return respuesta con el préstamo actualizado
+     */
+    ApiResponse<LoanResponse> markLoanAsReturned(
+            UUID loanId
     );
 
     /**
