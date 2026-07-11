@@ -9,17 +9,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-
 @Entity
 @Table(name = "books")
 public class Book {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", nullable = false, unique = false)
+    @Column(name = "id", nullable = false)
     private UUID id;
 
-    @Column(name= "title", nullable = false)
+    @Column(name = "title", nullable = false)
     private String title;
 
     @Column(name = "author", nullable = false)
@@ -30,6 +29,9 @@ public class Book {
 
     @Column(name = "isbn", nullable = false, unique = true)
     private String isbn;
+
+    @Column(name = "available", nullable = false)
+    private boolean available = true;
 
     public UUID getId() {
         return id;
@@ -71,5 +73,11 @@ public class Book {
         this.isbn = isbn;
     }
 
-}
+    public boolean isAvailable() {
+        return available;
+    }
 
+    public void setAvailable(boolean available) {
+        this.available = available;
+    }
+}
