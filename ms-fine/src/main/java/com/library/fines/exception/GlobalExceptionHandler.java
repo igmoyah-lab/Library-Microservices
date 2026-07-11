@@ -16,41 +16,57 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(
-            ResourceNotFoundException ex
+            ResourceNotFoundException exception
     ) {
-
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(
-                        false,
-                        null,
-                        ex.getMessage()
-                ));
+                .body(
+                        new ApiResponse<>(
+                                false,
+                                null,
+                                exception.getMessage()
+                        )
+                );
     }
 
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ApiResponse<Void>> handleDuplicate(
-            DuplicateResourceException ex
+            DuplicateResourceException exception
     ) {
-
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(new ApiResponse<>(
-                        false,
-                        null,
-                        ex.getMessage()
-                ));
+                .body(
+                        new ApiResponse<>(
+                                false,
+                                null,
+                                exception.getMessage()
+                        )
+                );
+    }
+
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ApiResponse<Void>> handleBusinessRule(
+            BusinessRuleException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(
+                        new ApiResponse<>(
+                                false,
+                                null,
+                                exception.getMessage()
+                        )
+                );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Map<String, String>>>
             handleValidation(
-                    MethodArgumentNotValidException ex
+                    MethodArgumentNotValidException exception
             ) {
-
         Map<String, String> errors = new HashMap<>();
 
-        ex.getBindingResult()
+        exception.getBindingResult()
                 .getFieldErrors()
                 .forEach(error ->
                         errors.put(
@@ -61,10 +77,27 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(new ApiResponse<>(
-                        false,
-                        errors,
-                        "Existen datos inválidos en la solicitud"
-                ));
+                .body(
+                        new ApiResponse<>(
+                                false,
+                                errors,
+                                "Existen datos inválidos en la solicitud"
+                        )
+                );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnexpectedError(
+            Exception exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(
+                        new ApiResponse<>(
+                                false,
+                                null,
+                                "Ocurrió un error interno inesperado"
+                        )
+                );
     }
 }
