@@ -14,30 +14,58 @@ import com.library.loans.dto.ApiResponse;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(
-            ResourceNotFoundException ex
-    ) {
-
+@ExceptionHandler(ResourceNotFoundException.class)
+public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(
+        ResourceNotFoundException exception
+) {
         ApiResponse<Void> response = new ApiResponse<>(
                 false,
                 null,
-                ex.getMessage()
+                exception.getMessage()
         );
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
                 .body(response);
-    }
+}
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(
-            MethodArgumentNotValidException ex
-    ) {
+@ExceptionHandler(BusinessRuleException.class)
+public ResponseEntity<ApiResponse<Void>> handleBusinessRule(
+        BusinessRuleException exception
+) {
+        ApiResponse<Void> response = new ApiResponse<>(
+                false,
+                null,
+                exception.getMessage()
+        );
 
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(response);
+}
+
+@ExceptionHandler(ExternalServiceException.class)
+public ResponseEntity<ApiResponse<Void>> handleExternalService(
+        ExternalServiceException exception
+) {
+        ApiResponse<Void> response = new ApiResponse<>(
+                false,
+                null,
+                exception.getMessage()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(response);
+}
+
+@ExceptionHandler(MethodArgumentNotValidException.class)
+public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(
+        MethodArgumentNotValidException exception
+) {
         Map<String, String> errors = new HashMap<>();
 
-        ex.getBindingResult()
+        exception.getBindingResult()
                 .getFieldErrors()
                 .forEach(error ->
                         errors.put(
@@ -55,5 +83,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(response);
-    }
+}
+
+@ExceptionHandler(Exception.class)
+public ResponseEntity<ApiResponse<Void>> handleUnexpectedError(
+        Exception exception
+) {
+        ApiResponse<Void> response = new ApiResponse<>(
+                false,
+                null,
+                "Ocurrió un error interno inesperado"
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(response);
+}
 }
