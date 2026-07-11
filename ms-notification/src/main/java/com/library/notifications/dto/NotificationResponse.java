@@ -7,6 +7,7 @@ public record NotificationResponse(
         UUID id,
         UUID userId,
         String message,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean read
 ) {
 }
