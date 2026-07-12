@@ -158,7 +158,7 @@ Authorization: Bearer {{token}}
 //////////////////////////////////////////FINES//////////////////////////////////////////
 
 ### Obtener multa por id protegida
-GET {{baseUrl}}/fines/55555555-5555-5555-5555-555555555555
+GET {{baseUrl}}/fines/
 Authorization: Bearer {{token}}
 
 ### Obtener multas por usuario protegido
