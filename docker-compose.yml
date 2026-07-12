@@ -107,8 +107,8 @@ services:
     container_name: postgres-fine
     environment:
       POSTGRES_DB: fine
-      POSTGRES_USER: fine
-      POSTGRES_PASSWORD: fine
+      POSTGRES_USER: fines
+      POSTGRES_PASSWORD: fines
     ports:
       - "3007:5432"
     volumes:

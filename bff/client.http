@@ -1,15 +1,18 @@
 @baseUrl = http://localhost:5000
-@token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ3YWxhbGFAZ21haWwuY2wiLCJpYXQiOjE3ODIwMDk1MjYsImV4cCI6MTc4MjA5NTkyNn0.v8B8pbldaecVnQ6KcIn2qG9StdofrmH2J0FiUlQBqXY
-@bookId = 9f17e258-1676-4d43-8f4e-d11a119bacf1
+@token = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ3YWxhbGEzQGdtYWlsLmNsIiwiaWF0IjoxNzgzODg0NjA3LCJleHAiOjE3ODM5NzEwMDd9.oI6KhpRe8tLF5WlIdb9-eHsj65tdo9k2qgBruYT7d24
 
-@userId = PEGA_AQUI_UUID_REAL
+@bookId = 7abe5468-bf54-4fc7-879d-15f3bbc28ea3
+
+@userId = 6c04130a-4e21-4392-9d15-965de545efee
+
+@loanId = befa574a-548e-423d-8074-e8d1a9bd4609
 
 ### Login publico
 POST {{baseUrl}}/login
 Content-Type: application/json
 
 {
-  "email": "walala@gmail.cl",
+  "email": "walala3@gmail.cl",
   "password": "abcd.1234"
 }
 
@@ -18,7 +21,7 @@ POST {{baseUrl}}/register
 Content-Type: application/json
 
 {
-  "email": "walala@gmail.cl",
+  "email": "walala3@gmail.cl",
   "password": "abcd.1234"
 }
 
@@ -84,11 +87,106 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "fullName": "gustavo pio 2 actualizado",
-  "phone": "912345678222",
-  "address": "Puente Alto 2, Chile"
+  "fullName": "pedro torres",
+  "phone": "4545343",
+  "address": "santiago"
 }
 
 ### Eliminar perfil protegido
 DELETE {{baseUrl}}/users/{{userId}}
+Authorization: Bearer {{token}}
+
+//////////////////////////////////////////LOANS//////////////////////////////////////////
+
+### Crear préstamo protegido
+POST {{baseUrl}}/loans
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}",
+  "bookId": "{{bookId}}"
+}
+
+### Obtener préstamo por id protegido
+GET {{baseUrl}}/loans/{{loanId}}
+Authorization: Bearer {{token}}
+
+### Obtener préstamos por usuario protegido
+GET {{baseUrl}}/loans/user/{{userId}}
+Authorization: Bearer {{token}}
+
+### Contar préstamos protegida
+GET {{baseUrl}}/loans/count
+Authorization: Bearer {{token}}
+
+//////////////////////////////////////////RESERVATIONS//////////////////////////////////////////
+
+### Crear reserva protegida
+POST {{baseUrl}}/reservations
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "{{userId}}",
+  "bookId": "{{bookId}}"
+}
+
+### Obtener reservas por usuario protegido
+GET {{baseUrl}}/reservations/user/{{userId}}
+Authorization: Bearer {{token}}
+
+### Cancelar reserva protegida
+DELETE {{baseUrl}}/reservations/{{bookId}}
+Authorization: Bearer {{token}}
+
+//////////////////////////////////////////RETURNS//////////////////////////////////////////
+
+### Registrar devolución protegida
+POST {{baseUrl}}/returns
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "loanId": "{{loanId}}"
+}
+
+### Obtener devolución por loanId protegido
+GET {{baseUrl}}/returns/loan/{{loanId}}
+Authorization: Bearer {{token}}
+
+//////////////////////////////////////////FINES//////////////////////////////////////////
+
+### Obtener multa por id protegida
+GET {{baseUrl}}/fines/55555555-5555-5555-5555-555555555555
+Authorization: Bearer {{token}}
+
+### Obtener multas por usuario protegido
+GET {{baseUrl}}/fines/user/{{userId}}
+Authorization: Bearer {{token}}
+
+### Pagar multa protegida
+PATCH {{baseUrl}}/fines/55555555-5555-5555-5555-555555555555/pay
+Authorization: Bearer {{token}}
+
+### Contar multas protegida
+GET {{baseUrl}}/fines/count
+Authorization: Bearer {{token}}
+
+### Contar multas pendientes protegida
+GET {{baseUrl}}/fines/count/pending
+Authorization: Bearer {{token}}
+
+### Contar multas pagadas protegida
+GET {{baseUrl}}/fines/count/paid
+Authorization: Bearer {{token}}
+
+//////////////////////////////////////////DASHBOARD//////////////////////////////////////////
+
+### Obtener dashboard de usuario protegido
+GET {{baseUrl}}/dashboard/user/{{userId}}
+Authorization: Bearer {{token}}
+
+### Obtener resumen general protegido
+GET {{baseUrl}}/reports/general-summary
 Authorization: Bearer {{token}}
