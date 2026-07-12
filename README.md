@@ -1,122 +1,155 @@
-# Proyecto Library - Arquitectura de Microservicios
+# Eva_3_Library - Sistema de Biblioteca con Microservicios
 
 ## 1. Descripción general
 
-Este proyecto corresponde a un sistema de biblioteca desarrollado con arquitectura de microservicios usando Spring Boot.
-La solución está compuesta por un BFF y tres microservicios principales:
+`Eva_3_Library` es un sistema de biblioteca desarrollado con arquitectura de microservicios usando Spring Boot.
 
-* **BFF**: punto de entrada principal del sistema. Recibe las solicitudes HTTP y las redirige hacia los microservicios correspondientes.
-* **auth**: microservicio encargado del registro, login y generación de token JWT.
-* **ms-book**: microservicio encargado de la gestión de libros.
-* **ms-user**: microservicio encargado de la gestión de perfiles de usuario.
+La solución está compuesta por:
 
-El sistema utiliza autenticación mediante **JWT Bearer Token**, documentación con **Swagger/OpenAPI**, pruebas automatizadas con **JUnit 5**, **Mockito**, **H2** para pruebas de persistencia y cobertura con **JaCoCo**.
+- **1 BFF** como punto de entrada principal.
+- **9 microservicios** con responsabilidades independientes.
+- **8 bases de datos PostgreSQL**, respetando la regla *Database per Service* cuando corresponde.
+- Autenticación y autorización mediante **JWT Bearer Token**.
+- Documentación de API mediante **Swagger / OpenAPI**.
+- Pruebas automatizadas con **JUnit 5**, **Mockito** y **H2**.
+- Reportes de cobertura mediante **JaCoCo**.
+- Orquestación completa con **Docker Compose**.
 
 ---
 
 ## 2. Arquitectura general
 
-La comunicación del sistema sigue el siguiente flujo:
+El cliente consume el sistema mediante el BFF. El BFF valida el token JWT y redirige cada solicitud hacia el microservicio correspondiente.
 
 ```text
 Cliente / Swagger / Postman
-          ↓
-         BFF
-          ↓
- ┌────────┼────────┐
- ↓        ↓        ↓
-auth  ms-book  ms-user
+             |
+             v
+        BFF - Puerto 5000
+             |
+   +---------+---------+---------+
+   |         |         |         |
+   v         v         v         v
+ms-auth   ms-book   ms-user   otros servicios
 ```
 
-El **BFF** funciona como una capa intermedia que centraliza las solicitudes.
-De esta forma, el cliente no se comunica directamente con los microservicios internos, sino que realiza las peticiones al BFF.
+Flujo general:
+
+```text
+Cliente
+  -> BFF
+      -> ms-auth
+      -> ms-book
+      -> ms-user
+      -> ms-loan
+      -> ms-return
+      -> ms-reservation
+      -> ms-fine
+      -> ms-notification
+      -> ms-report
+```
+
+El cliente no necesita comunicarse directamente con los microservicios internos.
 
 ---
 
 ## 3. Tecnologías utilizadas
 
-* Java
-* Spring Boot
-* Spring Web
-* Spring Security
-* Spring Data JPA
-* Gradle
-* PostgreSQL
-* H2 Database para pruebas
-* JWT
-* Swagger / OpenAPI
-* JUnit 5
-* Mockito
-* JaCoCo
+- Java 25
+- Spring Boot
+- Spring Web
+- Spring Security
+- Spring Data JPA
+- PostgreSQL
+- Flyway
+- Gradle
+- JWT
+- Swagger / OpenAPI
+- JUnit 5
+- Mockito
+- H2 para pruebas
+- JaCoCo
+- Docker
+- Docker Compose
 
 ---
 
-## 4. Módulos del proyecto
+## 4. Servicios y puertos
 
-### 4.1 BFF
+| Servicio | Responsabilidad principal | Puerto |
+|---|---|---:|
+| `bff` | Entrada principal y enrutamiento | 5000 |
+| `ms-book` | Gestión de libros | 5001 |
+| `ms-user` | Gestión de perfiles de usuario | 5002 |
+| `ms-auth` | Registro, login y generación de JWT | 5003 |
+| `ms-loan` | Gestión de préstamos | 5004 |
+| `ms-return` | Gestión de devoluciones | 5005 |
+| `ms-reservation` | Gestión de reservas | 5006 |
+| `ms-fine` | Gestión de multas | 5007 |
+| `ms-notification` | Gestión de notificaciones | 5008 |
+| `ms-report` | Generación y consulta de reportes | 5009 |
 
-El BFF es la entrada principal del sistema.
-Se encarga de recibir las solicitudes HTTP y redirigirlas hacia el microservicio correspondiente.
+---
 
-Funciones principales:
+## 5. Bases de datos
 
-* Redirigir solicitudes de autenticación hacia `ms-auth`.
-* Redirigir solicitudes de libros hacia `ms-book`.
-* Redirigir solicitudes de perfiles hacia `ms-user`.
-* Validar token JWT en endpoints protegidos.
-* Exponer documentación Swagger centralizada.
+Cada microservicio que necesita persistencia cuenta con su propia base de datos PostgreSQL.
 
-Puerto utilizado:
+| Base de datos | Microservicio | Puerto local |
+|---|---|---:|
+| `book` | `ms-book` | 3001 |
+| `user` | `ms-user` | 3002 |
+| `authdb` | `ms-auth` | 3003 |
+| `loans` | `ms-loan` | 3004 |
+| `returns` | `ms-return` | 3005 |
+| `reservations` | `ms-reservation` | 3006 |
+| `fines` | `ms-fine` | 3007 |
+| `notifications` | `ms-notification` | 3008 |
+
+`ms-report` no utiliza una base de datos propia, porque obtiene información desde otros microservicios y procesa los datos necesarios para sus reportes.
+
+---
+
+## 6. Responsabilidad de los módulos
+
+### 6.1 BFF
+
+El BFF es el punto de entrada principal del sistema.
+
+Funciones:
+
+- Recibir las solicitudes del cliente.
+- Validar JWT en endpoints protegidos.
+- Redirigir solicitudes al microservicio correspondiente.
+- Centralizar la documentación Swagger.
+- Propagar respuestas y códigos HTTP de los servicios internos.
+- Manejar errores de servicios externos.
+
+URL principal:
 
 ```text
 http://localhost:5000
 ```
 
----
+### 6.2 ms-auth
 
-### 4.2 ms-auth
+Responsable de:
 
-Microservicio encargado de la autenticación.
+- Registro de usuarios.
+- Inicio de sesión.
+- Validación de credenciales.
+- Generación de JWT.
 
-Funciones principales:
-
-* Registro de usuarios.
-* Login de usuarios.
-* Generación de token JWT.
-* Validación de credenciales.
-
-Endpoints principales expuestos a través del BFF:
+Endpoints principales a través del BFF:
 
 ```text
 POST /register
 POST /login
 ```
 
-Flujo de autenticación:
+### 6.3 ms-book
 
-```text
-1. El usuario se registra en /register.
-2. Luego inicia sesión en /login.
-3. El sistema devuelve un token JWT.
-4. El token se utiliza en Swagger o Postman como Bearer Token.
-```
-
----
-
-### 4.3 ms-book
-
-Microservicio encargado de la gestión de libros.
-
-Funciones principales:
-
-* Crear libros.
-* Listar libros.
-* Buscar libros por filtros.
-* Buscar libro por ID.
-* Actualizar libro.
-* Eliminar libro.
-
-Endpoints expuestos a través del BFF:
+Responsable del CRUD completo de libros:
 
 ```text
 GET    /books
@@ -127,78 +160,79 @@ DELETE /books/{id}
 GET    /books/search
 ```
 
-Ejemplo de request para crear un libro:
+Ejemplo de creación:
 
 ```json
 {
-  "title": "El Principito",
-  "author": "Antoine de Saint-Exupéry",
-  "category": "Literatura",
-  "isbn": "123456789"
+  "title": "Clean Code",
+  "author": "Robert C. Martin",
+  "category": "Software Engineering",
+  "isbn": "9780132350884"
 }
 ```
 
-Ejemplo de respuesta:
+### 6.4 ms-user
 
-```json
-{
-  "success": true,
-  "data": {
-    "id": "00000000-0000-0000-0000-000000000000",
-    "title": "El Principito",
-    "author": "Antoine de Saint-Exupéry",
-    "category": "Literatura",
-    "isbn": "123456789"
-  },
-  "message": "Libro creado con éxito"
-}
-```
+Responsable de:
+
+- Crear o actualizar perfiles.
+- Listar perfiles.
+- Buscar perfiles.
+- Eliminar perfiles.
+- Relacionar un perfil con el correo usado en autenticación.
+
+### 6.5 ms-loan
+
+Responsable de:
+
+- Registrar préstamos.
+- Consultar préstamos.
+- Aplicar reglas relacionadas con usuarios y libros.
+- Comunicarse con `ms-user` y `ms-book`.
+
+### 6.6 ms-return
+
+Responsable de:
+
+- Registrar devoluciones.
+- Consultar información de préstamos.
+- Actualizar el flujo relacionado con libros devueltos.
+- Comunicarse con `ms-loan`, `ms-book` y `ms-fine`.
+
+### 6.7 ms-reservation
+
+Responsable de:
+
+- Crear y consultar reservas.
+- Validar información de usuarios y libros.
+- Solicitar notificaciones relacionadas con reservas.
+
+### 6.8 ms-fine
+
+Responsable de:
+
+- Registrar y consultar multas.
+- Persistir información en la base `fines`.
+- Exponer información que puede ser utilizada por devoluciones y reportes.
+
+### 6.9 ms-notification
+
+Responsable de:
+
+- Crear y consultar notificaciones.
+- Persistir mensajes o eventos relacionados con el sistema.
+
+### 6.10 ms-report
+
+Responsable de:
+
+- Obtener información desde otros microservicios.
+- Procesar datos de préstamos y multas.
+- Generar respuestas de reporte sin mantener una base de datos propia.
 
 ---
 
-### 4.4 ms-user
-
-Microservicio encargado de la gestión de perfiles de usuario.
-
-Funciones principales:
-
-* Obtener todos los perfiles.
-* Crear o actualizar un perfil.
-* Eliminar perfil por ID.
-* Buscar perfil por correo de autenticación.
-
-Endpoints expuestos a través del BFF:
-
-```text
-GET    /users
-PUT    /users/profile
-DELETE /users/{id}
-```
-
-Ejemplo de request para completar o actualizar perfil:
-
-```json
-{
-  "authEmail": "usuario@test.com",
-  "fullName": "Usuario Test",
-  "phone": "912345678",
-  "address": "Santiago"
-}
-```
-
-## Diagramas del sistema
-
-### Diagrama C2 - Sistema Biblioteca
-
-![Diagrama C2 - Sistema Biblioteca](docs/diagrama-c2-sistema-biblioteca.jpeg)
-
-### Diagrama C3 - SystemLibrary
-
-![Diagrama C3 - SystemLibrary](docs/diagrama-c3-systemlibrary.jpeg)
-
-## 5. Seguridad con JWT
-
-El proyecto utiliza autenticación mediante JWT.
+## 7. Seguridad con JWT
 
 Los endpoints públicos son:
 
@@ -207,35 +241,33 @@ POST /register
 POST /login
 ```
 
-Los demás endpoints requieren token.
+Los demás endpoints requieren un JWT válido.
 
-Para consumir endpoints protegidos se debe enviar el header:
+Header requerido:
 
 ```http
 Authorization: Bearer <token>
 ```
 
-Ejemplo:
+En Swagger:
 
-```http
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-En Swagger se configuró la autenticación mediante el botón **Authorize**, usando el esquema `bearerAuth`.
+1. Ejecutar `POST /register` o `POST /login`.
+2. Copiar el token.
+3. Presionar **Authorize**.
+4. Pegar solamente el token.
+5. Ejecutar los endpoints protegidos.
 
 ---
 
-## 6. Swagger / OpenAPI
+## 8. Swagger / OpenAPI
 
-El BFF expone la documentación Swagger del sistema.
-
-URL de Swagger UI:
+Swagger del BFF:
 
 ```text
 http://localhost:5000/swagger-ui/index.html
 ```
 
-URL de la especificación OpenAPI en formato JSON:
+Especificación OpenAPI:
 
 ```text
 http://localhost:5000/v3/api-docs
@@ -243,372 +275,340 @@ http://localhost:5000/v3/api-docs
 
 Swagger permite:
 
-* Visualizar los endpoints disponibles.
-* Probar solicitudes HTTP desde el navegador.
-* Revisar los DTOs en la sección Schemas.
-* Usar autenticación JWT mediante el botón Authorize.
-* Generar documentación OpenAPI para importar en herramientas como Postman.
+- Visualizar los endpoints.
+- Ejecutar solicitudes desde el navegador.
+- Revisar DTOs y esquemas.
+- Utilizar autenticación JWT.
+- Validar códigos HTTP y respuestas.
 
 ---
 
-## 7. Flujo recomendado para probar en Swagger
+## 9. Docker Compose
 
-Para probar correctamente los endpoints protegidos desde Swagger:
+El archivo `docker-compose.yml` levanta:
 
-```text
-1. Levantar los microservicios necesarios.
-2. Abrir Swagger del BFF:
-   http://localhost:5000/swagger-ui/index.html
-3. Ejecutar POST /register para registrar un usuario.
-4. Ejecutar POST /login para obtener un token JWT.
-5. Copiar el token generado.
-6. Presionar el botón Authorize.
-7. Pegar el token JWT.
-8. Probar endpoints protegidos como GET /books o GET /users.
-```
+- 8 bases de datos PostgreSQL.
+- 9 microservicios.
+- 1 BFF.
+- 18 contenedores en total.
 
----
+### 9.1 Construir y levantar el sistema
 
-## 8. Importación en Postman
-
-La documentación OpenAPI puede exportarse desde:
-
-```text
-http://localhost:5000/v3/api-docs
-```
-
-Luego puede importarse en Postman como archivo JSON.
-
-También se puede generar una colección Postman a partir de esta especificación para probar los endpoints del BFF.
-
-Al usar Postman, se recomienda configurar el token JWT a nivel de colección:
-
-```text
-Authorization → Type: Bearer Token → Token
-```
-
----
-
-## 9. Configuración de Swagger con JWT
-
-Para permitir autenticación mediante header en Swagger, se agregó una clase `OpenApiConfig` en el BFF:
-
-```java
-@Configuration
-@OpenAPIDefinition(
-        security = {
-                @SecurityRequirement(name = "bearerAuth")
-        }
-)
-@SecurityScheme(
-        name = "bearerAuth",
-        type = SecuritySchemeType.HTTP,
-        scheme = "bearer",
-        bearerFormat = "JWT"
-)
-public class OpenApiConfig {
-}
-```
-
-Esta configuración permite que Swagger muestre el botón **Authorize** y envíe el token JWT en las solicitudes protegidas.
-
-Además, en `SecurityConfig` se permitieron las rutas de Swagger:
-
-```java
-.requestMatchers(
-    "/login",
-    "/register",
-    "/swagger-ui/**",
-    "/swagger-ui.html",
-    "/v3/api-docs/**"
-).permitAll()
-```
-
-Esto permite acceder a la documentación sin token, manteniendo protegidos los endpoints privados.
-
----
-
-## 10. Pruebas automatizadas
-
-El proyecto incorpora pruebas automatizadas para validar el comportamiento de las distintas capas.
-
-### 10.1 Tests en ms-book
-
-El microservicio `ms-book` cuenta con pruebas para:
-
-```text
-BookDtoValidationTest
-BookControllerTest
-BookServiceImplTest
-BookRepositoryTest
-```
-
-Objetivo de cada test:
-
-* **BookDtoValidationTest**: valida restricciones del DTO.
-* **BookControllerTest**: valida las respuestas del controlador usando mocks.
-* **BookServiceImplTest**: valida la lógica del servicio usando Mockito.
-* **BookRepositoryTest**: valida consultas JPA usando H2 en memoria.
-
----
-
-### 10.2 Tests en ms-user
-
-El microservicio `ms-user` cuenta con pruebas para:
-
-```text
-UserDtoValidationTest
-UserControllerTest
-UserServiceImplTest
-UserRepositoryTest
-```
-
-Objetivo de cada test:
-
-* **UserDtoValidationTest**: valida restricciones del DTO.
-* **UserControllerTest**: valida el comportamiento del controlador.
-* **UserServiceImplTest**: valida la lógica de creación, actualización y eliminación de perfiles.
-* **UserRepositoryTest**: valida búsquedas por correo usando JPA.
-
----
-
-## 11. Repository test con H2
-
-Los tests de repository utilizan H2 en memoria para evitar depender de la base de datos real de desarrollo.
-
-Ejemplo de configuración en `application-test.properties`:
-
-```properties
-spring.datasource.url=jdbc:h2:mem:books_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-spring.datasource.driver-class-name=org.h2.Driver
-spring.datasource.username=sa
-spring.datasource.password=
-
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.jpa.open-in-view=false
-
-spring.flyway.enabled=false
-```
-
-Esto permite ejecutar pruebas de persistencia sin afectar la base de datos PostgreSQL real.
-
----
-
-## 12. Ejecutar tests
-
-Desde la raíz del microservicio correspondiente:
+Desde la raíz del proyecto:
 
 ```bash
-./gradlew test
+docker compose up -d --build
 ```
 
-En Windows:
+### 9.2 Revisar el estado
+
+```bash
+docker compose ps
+```
+
+Las bases de datos deberían aparecer como:
+
+```text
+Up (healthy)
+```
+
+Los microservicios y el BFF deberían aparecer como:
+
+```text
+Up
+```
+
+### 9.3 Revisar logs
+
+Todos los servicios:
+
+```bash
+docker compose logs
+```
+
+Un servicio específico:
+
+```bash
+docker compose logs --tail=100 bff
+```
+
+Ejemplo para multas:
+
+```bash
+docker compose logs --tail=100 ms-fine
+```
+
+### 9.4 Detener los contenedores
+
+```bash
+docker compose down
+```
+
+Este comando conserva los volúmenes y los datos.
+
+Para eliminar también los volúmenes:
+
+```bash
+docker compose down -v
+```
+
+> El comando con `-v` elimina las bases de datos almacenadas en Docker.
+
+---
+
+## 10. Ejecución local sin Docker
+
+Cada microservicio incluye su propio wrapper de Gradle.
+
+Ejemplo en Windows:
+
+```bash
+cd ms-book
+.\gradlew bootRun
+```
+
+Ejemplo en Linux o macOS:
+
+```bash
+cd ms-book
+./gradlew bootRun
+```
+
+Al ejecutar servicios localmente, las bases de datos PostgreSQL deben estar disponibles en los puertos indicados en la tabla de bases de datos.
+
+---
+
+## 11. Pruebas automatizadas
+
+El proyecto utiliza:
+
+- JUnit 5
+- Mockito
+- H2
+- Spring Boot Test
+- JaCoCo
+
+Ejecutar tests en Windows:
 
 ```bash
 .\gradlew test
 ```
 
-Este comando ejecuta toda la suite de pruebas del microservicio.
+Ejecutar tests y generar cobertura:
 
----
+```bash
+.\gradlew test jacocoTestReport
+```
 
-## 13. Reporte de tests
-
-Después de ejecutar los tests, Gradle genera un reporte HTML en:
+Reporte de tests:
 
 ```text
 build/reports/tests/test/index.html
 ```
 
-Este reporte muestra:
-
-* Cantidad de tests ejecutados.
-* Tests exitosos.
-* Tests fallidos.
-* Tests omitidos.
-* Tiempo de ejecución.
-
----
-
-## 14. Coverage con JaCoCo
-
-El proyecto incorpora JaCoCo para medir la cobertura de pruebas.
-
-Configuración en `build.gradle`:
-
-```gradle
-plugins {
-    id 'jacoco'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
-    finalizedBy tasks.named('jacocoTestReport')
-}
-
-jacocoTestReport {
-    dependsOn tasks.named('test')
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-```
-
-Para ejecutar tests y generar cobertura:
-
-```bash
-./gradlew test jacocoTestReport
-```
-
-En Windows:
-
-```bash
-.\gradlew test jacocoTestReport
-```
-
-Reporte HTML:
+Reporte HTML de JaCoCo:
 
 ```text
 build/reports/jacoco/test/html/index.html
 ```
 
-Reporte XML:
+Reporte XML de JaCoCo:
 
 ```text
 build/reports/jacoco/test/jacocoTestReport.xml
 ```
 
-El reporte HTML permite visualizar qué clases y métodos están cubiertos por pruebas.
+Los tests principales validan:
+
+- DTOs.
+- Controladores.
+- Servicios.
+- Repositorios.
+- Reglas de negocio.
+- Persistencia con H2.
 
 ---
 
-## 15. Orden recomendado para revisar los tests
+## 12. Manejo de errores
 
-Orden sugerido para presentar o explicar las pruebas:
+El sistema incorpora manejo centralizado de errores y excepciones personalizadas.
 
-```text
-1. DTO Validation Test
-2. ServiceImpl Test
-3. Controller Test
-4. Repository Test con H2
-5. Reporte de cobertura JaCoCo
-```
+Códigos HTTP utilizados:
 
-Este orden permite explicar primero las pruebas más simples y luego avanzar hacia pruebas de lógica e integración con persistencia.
+| Código | Significado |
+|---:|---|
+| 200 | Consulta o actualización exitosa |
+| 201 | Recurso creado correctamente |
+| 400 | Solicitud inválida |
+| 401 | Token ausente o inválido |
+| 404 | Recurso no encontrado |
+| 500 | Error interno o error no controlado |
 
----
-
-## 16. Comandos útiles
-
-Levantar un microservicio:
-
-```bash
-./gradlew bootRun
-```
-
-En Windows:
-
-```bash
-.\gradlew bootRun
-```
-
-Ejecutar tests:
-
-```bash
-.\gradlew test
-```
-
-Ejecutar tests con JaCoCo:
-
-```bash
-.\gradlew test jacocoTestReport
-```
-
-Limpiar y compilar:
-
-```bash
-.\gradlew clean build
-```
+El BFF propaga respuestas de error de los microservicios. Por ejemplo, al consultar un libro eliminado, el sistema devuelve un `404 Not Found` con el mensaje correspondiente.
 
 ---
 
-## 17. Códigos HTTP utilizados
+## 13. Migraciones con Flyway
 
-El proyecto utiliza códigos HTTP según el tipo de operación:
+Los servicios con persistencia utilizan Flyway para validar y ejecutar migraciones.
 
-```text
-200 OK       → Consulta o actualización exitosa.
-201 Created  → Recurso creado correctamente.
-400 Bad Request → Solicitud inválida.
-401 Unauthorized → Token ausente o inválido.
-404 Not Found → Recurso no encontrado.
-500 Internal Server Error → Error interno del servidor.
-```
-
-Ejemplos:
+Las migraciones se encuentran normalmente en:
 
 ```text
-POST /books      → 201 Created
-GET /books       → 200 OK
-PUT /books/{id}  → 200 OK
-DELETE /books/{id} → 200 OK
+src/main/resources/db/migration
 ```
+
+Al iniciar el servicio:
+
+1. Flyway verifica el esquema.
+2. Ejecuta migraciones pendientes.
+3. Hibernate valida las entidades contra la base de datos.
 
 ---
 
-## 18. Estructura general del proyecto
+## 14. Diagramas de arquitectura
+
+### Diagrama C2
+
+![Diagrama C2 - Sistema Biblioteca](docs/diagrama-c2-sistema-biblioteca.jpeg)
+
+### Diagrama C3
+
+![Diagrama C3 - SystemLibrary](docs/diagrama-c3-systemlibrary.jpeg.jpeg)
+
+> Si el nombre real del archivo C3 no contiene la segunda extensión `.jpeg`, se debe ajustar la ruta anterior.
+
+---
+
+## 15. Estructura general
 
 ```text
-Proyecto
+Eva_3_Library
 ├── bff
-│   ├── controller
-│   ├── service
-│   ├── client
-│   ├── dto
-│   ├── config
-│   └── security
-│
 ├── ms-auth
-│   ├── controller
-│   ├── service
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   └── security
-│
 ├── ms-book
-│   ├── controller
-│   ├── service
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   └── exception
-│
-└── ms-user
-    ├── controller
-    ├── service
-    ├── dto
-    ├── entity
-    ├── repository
-    └── exception
+├── ms-user
+├── ms-loan
+├── ms-return
+├── ms-reservation
+├── ms-fine
+├── ms-notification
+├── ms-report
+├── docs
+├── docker-compose.yml
+└── README.md
 ```
+
+Los microservicios que utilizan persistencia mantienen una estructura similar a:
+
+```text
+controller
+service
+repository
+entity
+dto
+exception
+config
+```
+
+El BFF mantiene una estructura similar a:
+
+```text
+controller
+service
+client
+dto
+exception
+config
+security
+```
+
+---
+
+## 16. Prueba recomendada
+
+1. Ejecutar:
+
+```bash
+docker compose up -d --build
+```
+
+2. Confirmar los 18 contenedores:
+
+```bash
+docker compose ps
+```
+
+3. Abrir Swagger:
+
+```text
+http://localhost:5000/swagger-ui/index.html
+```
+
+4. Registrar un usuario mediante `POST /register`.
+
+5. Copiar el JWT y autorizar Swagger.
+
+6. Ejecutar el CRUD de libros:
+
+```text
+POST   /books
+GET    /books
+GET    /books/{id}
+PUT    /books/{id}
+DELETE /books/{id}
+```
+
+7. Verificar que consultar el recurso eliminado devuelva:
+
+```text
+404 Not Found
+```
+
+---
+
+## 17. Evidencias recomendadas
+
+Para la entrega se recomienda incluir capturas de:
+
+- `docker compose up -d --build` finalizado correctamente.
+- `docker compose ps` con los 18 contenedores.
+- Bases de datos en estado `healthy`.
+- Swagger del BFF.
+- Registro o login con generación de JWT.
+- Botón **Authorize** configurado.
+- CRUD completo de libros.
+- Respuesta `404` al consultar un libro eliminado.
+- Reporte de tests.
+- Reporte de cobertura JaCoCo.
+- Diagramas C2 y C3.
+
+---
+
+## 18. Integrantes
+
+- Ignacio Moya
+- Bryan Burgos
 
 ---
 
 ## 19. Conclusión
 
-Este proyecto implementa una arquitectura de microservicios con un BFF como punto de entrada, separando responsabilidades entre autenticación, gestión de libros y gestión de perfiles de usuario.
+El proyecto implementa una arquitectura de microservicios completa para la gestión de una biblioteca.
 
-Además, incorpora buenas prácticas como:
+La solución separa responsabilidades entre nueve microservicios y utiliza un BFF como punto de entrada central. Cada servicio que requiere persistencia mantiene su propia base de datos, evitando compartir directamente el almacenamiento entre microservicios.
 
-* Separación por capas.
-* Comunicación entre microservicios mediante el BFF.
-* Seguridad con JWT.
-* Documentación con Swagger/OpenAPI.
-* Validación de DTOs.
-* Pruebas unitarias e integración.
-* Base de datos H2 para tests.
-* Reportes de cobertura con JaCoCo.
+También incorpora:
 
-La documentación Swagger permite probar la API de forma visual, mientras que los tests automatizados aseguran el correcto funcionamiento de las capas principales del sistema.
+- Seguridad con JWT.
+- Swagger / OpenAPI.
+- CRUD completo.
+- Comunicación entre microservicios.
+- Manejo centralizado de errores.
+- Excepciones personalizadas.
+- Migraciones con Flyway.
+- Pruebas automatizadas.
+- Cobertura con JaCoCo.
+- Diagramas C2 y C3.
+- Contenedores Docker.
+- Orquestación con Docker Compose.
