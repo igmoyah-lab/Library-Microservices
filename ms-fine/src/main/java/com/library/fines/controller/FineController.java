@@ -24,52 +24,79 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/fines")
 public class FineController {
 
-    private final FineService fineService;
+private final FineService fineService;
 
-    public FineController(FineService fineService) {
-        this.fineService = fineService;
-    }
+public FineController(FineService fineService) {
+this.fineService = fineService;
+}
 
-    @PostMapping
-    public ResponseEntity<ApiResponse<FineResponse>> createFine(
-            @Valid @RequestBody FineRequest fineRequest
-    ) {
+@PostMapping
+public ResponseEntity<ApiResponse<FineResponse>> createFine(
+        @Valid @RequestBody FineRequest fineRequest
+) {
+return ResponseEntity
+        .status(HttpStatus.CREATED)
+        .body(fineService.createFine(fineRequest));
+}
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(fineService.createFine(fineRequest));
-    }
+@GetMapping("/{id}")
+public ResponseEntity<ApiResponse<FineResponse>> getFineById(
+        @PathVariable UUID id
+) {
+return ResponseEntity.ok(
+        fineService.getFineById(id)
+);
+}
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<ApiResponse<List<FineResponse>>>
-            getFinesByUserId(
-                    @PathVariable UUID userId
-            ) {
+@GetMapping("/user/{userId}")
+public ResponseEntity<ApiResponse<List<FineResponse>>>
+        getFinesByUserId(
+                @PathVariable UUID userId
+        ) {
+return ResponseEntity.ok(
+        fineService.getFinesByUserId(userId)
+);
+}
 
-        return ResponseEntity.ok(
-                fineService.getFinesByUserId(userId)
-        );
-    }
+@PatchMapping("/{id}/pay")
+public ResponseEntity<ApiResponse<FineResponse>> payFine(
+        @PathVariable UUID id
+) {
+return ResponseEntity.ok(
+        fineService.payFine(id)
+);
+}
 
-    @PatchMapping("/{id}/pay")
-    public ResponseEntity<ApiResponse<FineResponse>> payFine(
-            @PathVariable UUID id
-    ) {
+@GetMapping("/count")
+public ResponseEntity<ApiResponse<Long>> countFines() {
+return ResponseEntity.ok(
+        new ApiResponse<>(
+                true,
+                fineService.countFines(),
+                "Cantidad total de multas obtenida con éxito"
+        )
+);
+}
 
-        return ResponseEntity.ok(
-                fineService.payFine(id)
-        );
-    }
-       
-    @GetMapping("/count")
-        public ResponseEntity<ApiResponse<Long>> countFines() {
+@GetMapping("/count/pending")
+public ResponseEntity<ApiResponse<Long>> countPendingFines() {
+return ResponseEntity.ok(
+        new ApiResponse<>(
+                true,
+                fineService.countPendingFines(),
+                "Cantidad de multas pendientes obtenida con éxito"
+        )
+);
+}
 
-        return ResponseEntity.ok(
-                new ApiResponse<>(
-                        true,
-                        fineService.countFines(),
-                        "Cantidad de multas obtenida con éxito"
-                )
-        );
-        }
+@GetMapping("/count/paid")
+public ResponseEntity<ApiResponse<Long>> countPaidFines() {
+return ResponseEntity.ok(
+        new ApiResponse<>(
+                true,
+                fineService.countPaidFines(),
+                "Cantidad de multas pagadas obtenida con éxito"
+        )
+);
+}
 }

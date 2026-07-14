@@ -14,14 +14,19 @@ import com.library.users.repository.UserRepository;
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final UserRepository userRepository;
+private final UserRepository userRepository;
 
-    public UserServiceImpl(UserRepository userRepository) {
+public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
-    }
+}
 
-    @Override
-    public ApiResponse<List<UserDto>> getAllProfiles() {
+/**
+* Obtiene todos los perfiles de usuario registrados.
+*
+* @return respuesta con la lista de perfiles
+*/
+@Override
+public ApiResponse<List<UserDto>> getAllProfiles() {
         List<UserDto> profiles = userRepository.findAll()
                 .stream()
                 .map(this::mapToDto)
@@ -32,10 +37,39 @@ public class UserServiceImpl implements UserService {
                 "Perfiles obtenidos correctamente",
                 profiles
         );
-    }
+}
 
-    @Override
-    public ApiResponse<UserDto> updateProfile(UserDto userDto) {
+/**
+     * Obtiene un perfil mediante su identificador.
+     *
+     * @param id identificador del perfil
+     * @return respuesta con el perfil encontrado
+     * @throws ResourceNotFoundException si el perfil no existe
+     */
+@Override
+public ApiResponse<UserDto> getProfileById(UUID id) {
+        User profile = userRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Perfil no encontrado con id: " + id
+                        )
+                );
+
+        return new ApiResponse<>(
+                true,
+                "Perfil obtenido correctamente",
+                mapToDto(profile)
+        );
+}
+
+/**
+     * Crea o actualiza un perfil utilizando el correo del usuario.
+     *
+     * @param userDto datos del perfil
+     * @return respuesta con el perfil guardado
+     */
+@Override
+public ApiResponse<UserDto> updateProfile(UserDto userDto) {
         User profile = userRepository
                 .findByAuthEmailIgnoreCase(userDto.authEmail())
                 .orElse(new User());
@@ -58,12 +92,23 @@ public class UserServiceImpl implements UserService {
                 message,
                 mapToDto(savedProfile)
         );
-    }
+}
 
-    @Override
-    public ApiResponse<Void> deleteProfile(UUID id) {
+/**
+     * Elimina un perfil mediante su identificador.
+     *
+     * @param id identificador del perfil
+     * @return respuesta sin contenido
+     * @throws ResourceNotFoundException si el perfil no existe
+     */
+@Override
+public ApiResponse<Void> deleteProfile(UUID id) {
         User profile = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Perfil no encontrado con id: " + id));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Perfil no encontrado con id: " + id
+                        )
+                );
 
         userRepository.delete(profile);
 
@@ -72,9 +117,15 @@ public class UserServiceImpl implements UserService {
                 "Perfil eliminado correctamente",
                 null
         );
-    }
+}
 
-    private UserDto mapToDto(User profile) {
+/**
+     * Convierte una entidad User en un objeto UserDto.
+     *
+     * @param profile entidad del perfil
+     * @return datos del perfil convertidos a DTO
+     */
+private UserDto mapToDto(User profile) {
         return new UserDto(
                 profile.getId(),
                 profile.getAuthEmail(),
@@ -82,5 +133,5 @@ public class UserServiceImpl implements UserService {
                 profile.getPhone(),
                 profile.getAddress()
         );
-    }
+}
 }

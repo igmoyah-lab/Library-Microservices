@@ -6,10 +6,13 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.library.fines.entity.Fine;
+import com.library.fines.entity.FineStatus;
 
 public interface FineRepository extends JpaRepository<Fine, UUID> {
 
     List<Fine> findByUserId(UUID userId);
 
     boolean existsByLoanId(UUID loanId);
+
+    long countByStatus(FineStatus status);
 }

@@ -7,7 +7,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.library.notifications.entity.Notification;
 
-public interface NotificationRepository extends JpaRepository<Notification, UUID> {
+public interface NotificationRepository
+        extends JpaRepository<Notification, UUID> {
 
-    List<Notification> findByUserIdOrderByCreatedAtDesc(UUID userId);
+    List<Notification> findByUserIdOrderByCreatedAtDesc(
+            UUID userId
+    );
+
+    long countByUserIdAndReadFalse(UUID userId);
 }

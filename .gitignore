@@ -39,3 +39,7 @@ Thumbs.db
 *.tmp
 *.swp
 *.swo
+
+# Variables privadas
+.env
+**/.env

@@ -15,13 +15,21 @@ public class ReportController {
 
     private final ReportService reportService;
 
-    public ReportController(ReportService reportService) {
+    public ReportController(
+            ReportService reportService
+    ) {
         this.reportService = reportService;
     }
 
+    /**
+     * Obtiene un resumen general del sistema.
+     *
+     * @return conteos de préstamos y multas
+     */
     @GetMapping("/general-summary")
-    public ResponseEntity<ApiResponse<GeneralReportResponse>>
-            getGeneralSummary() {
+    public ResponseEntity<
+            ApiResponse<GeneralReportResponse>
+    > getGeneralSummary() {
 
         return ResponseEntity.ok(
                 reportService.getGeneralSummary()

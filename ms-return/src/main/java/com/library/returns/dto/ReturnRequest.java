@@ -1,6 +1,5 @@
 package com.library.returns.dto;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 import jakarta.validation.constraints.NotNull;
@@ -8,10 +7,7 @@ import jakarta.validation.constraints.NotNull;
 public record ReturnRequest(
 
         @NotNull(message = "El identificador del préstamo es obligatorio")
-        UUID loanId,
-
-        @NotNull(message = "La fecha de vencimiento es obligatoria")
-        LocalDate dueDate
+        UUID loanId
 
 ) {
 }

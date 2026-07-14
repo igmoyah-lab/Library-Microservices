@@ -1,5 +1,6 @@
 services:
-  #BASE DE DATOS PARA EL MICROSERVICIO DE BOOK
+
+  # BASE DE DATOS DE LIBROS
   postgresbook:
     image: postgres:17-alpine
     container_name: book-postgres
@@ -13,12 +14,12 @@ services:
     volumes:
       - postgres_data_book:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U book -d book" ]
+      test: ["CMD-SHELL", "pg_isready -U book -d book"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  #BASE DE DATOS PARA EL MICROSERVICIO DE USER
+  # BASE DE DATOS DE USUARIOS
   postgresuser:
     image: postgres:17-alpine
     container_name: user-postgres
@@ -32,12 +33,12 @@ services:
     volumes:
       - postgres_data_user:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U user -d user" ]
+      test: ["CMD-SHELL", "pg_isready -U user -d user"]
       interval: 10s
       timeout: 5s
       retries: 5
-  
-  #BASE DE DATOS PARA EL MICROSERVICIO DE AUTH
+
+  # BASE DE DATOS DE AUTENTICACIÓN
   auth-postgres:
     image: postgres:17-alpine
     container_name: auth-postgres
@@ -56,7 +57,7 @@ services:
       timeout: 5s
       retries: 5
 
-  #BASE DE DATOS PARA EL MICROSERVICIO DE LOANS
+  # BASE DE DATOS DE PRÉSTAMOS
   loans-postgres:
     image: postgres:17-alpine
     container_name: loans-postgres
@@ -74,11 +75,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
-  #BASE DE DATOS PARA EL MICROSERVICIO DE RETURNS
+
+  # BASE DE DATOS DE DEVOLUCIONES
   postgres-returns:
     image: postgres:17-alpine
-    container_name: postgres-returns
+    container_name: returns-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: returns
       POSTGRES_USER: returns
@@ -87,11 +89,17 @@ services:
       - "3005:5432"
     volumes:
       - returns_data:/var/lib/postgresql/data
-  
-  #BASE DE DATOS PARA EL MICROSERVICIO DE RESERVATIONS
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U returns -d returns"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # BASE DE DATOS DE RESERVAS
   postgres-reservations:
     image: postgres:17-alpine
-    container_name: postgres-reservations
+    container_name: reservations-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: reservations
       POSTGRES_USER: reservations
@@ -100,24 +108,36 @@ services:
       - "3006:5432"
     volumes:
       - reservations_data:/var/lib/postgresql/data
-  
-  #BASE DE DATOS PARA MICROSERVICIO DE FINE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reservations -d reservations"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # BASE DE DATOS DE MULTAS
   postgres-fine:
     image: postgres:17-alpine
-    container_name: postgres-fine
+    container_name: fine-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: fine
-      POSTGRES_USER: fine
-      POSTGRES_PASSWORD: fine
+      POSTGRES_DB: fines
+      POSTGRES_USER: fines
+      POSTGRES_PASSWORD: fines
     ports:
       - "3007:5432"
     volumes:
       - fine_data:/var/lib/postgresql/data
-    
-  #BASE DE DATOS PARA EL MICROSERVICIO DE NOTIFICATIONS
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fines -d fines"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # BASE DE DATOS DE NOTIFICACIONES
   postgres-notifications:
     image: postgres:17-alpine
-    container_name: postgres-notifications
+    container_name: notifications-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: notifications
       POSTGRES_USER: notifications
@@ -126,13 +146,250 @@ services:
       - "3008:5432"
     volumes:
       - notifications_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifications -d notifications"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MICROSERVICIO DE LIBROS
+  ms-book:
+    build:
+      context: ./ms-book
+      dockerfile: Dockerfile
+    container_name: ms-book
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgresbook:5432/book
+      DB_USERNAME: book
+      DB_PASSWORD: book
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgresbook:
+        condition: service_healthy
+
+  # MICROSERVICIO DE USUARIOS
+  ms-user:
+    build:
+      context: ./ms-user
+      dockerfile: Dockerfile
+    container_name: ms-user
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgresuser:5432/user
+      DB_USERNAME: user
+      DB_PASSWORD: user
+      BOOK_SERVICE_URL: http://ms-book:5001/api/books
+    ports:
+      - "5002:5002"
+    depends_on:
+      postgresuser:
+        condition: service_healthy
+      ms-book:
+        condition: service_started
+
+  # MICROSERVICIO DE AUTENTICACIÓN
+  ms-auth:
+    build:
+      context: ./ms-auth
+      dockerfile: Dockerfile
+    container_name: ms-auth
+    restart: unless-stopped
+    environment:
+      AUTH_DB_URL: jdbc:postgresql://auth-postgres:5432/authdb
+      AUTH_DB_USERNAME: authuser
+      AUTH_DB_PASSWORD: authpass
+      JWT_SECRET: mi_clave_super_secreta_muy_larga_12345678901234567890
+      JWT_EXPIRATION_HOURS: 24
+    ports:
+      - "5003:5003"
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+
+  # MICROSERVICIO DE PRÉSTAMOS
+  ms-loan:
+    build:
+      context: ./ms-loan
+      dockerfile: Dockerfile
+    container_name: ms-loan
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://loans-postgres:5432/loans
+      SPRING_DATASOURCE_USERNAME: loans
+      SPRING_DATASOURCE_PASSWORD: loans
+      USER_SERVICE_URL: http://ms-user:5002
+      BOOK_SERVICE_URL: http://ms-book:5001
+    ports:
+      - "5004:5004"
+    depends_on:
+      loans-postgres:
+        condition: service_healthy
+      ms-user:
+        condition: service_started
+      ms-book:
+        condition: service_started
+
+  # MICROSERVICIO DE DEVOLUCIONES
+  ms-return:
+    build:
+      context: ./ms-return
+      dockerfile: Dockerfile
+    container_name: ms-return
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-returns:5432/returns
+      SPRING_DATASOURCE_USERNAME: returns
+      SPRING_DATASOURCE_PASSWORD: returns
+      LOAN_SERVICE_URL: http://ms-loan:5004
+      BOOK_SERVICE_URL: http://ms-book:5001
+      FINE_SERVICE_URL: http://ms-fine:5007
+    ports:
+      - "5005:5005"
+    depends_on:
+      postgres-returns:
+        condition: service_healthy
+      ms-loan:
+        condition: service_started
+      ms-book:
+        condition: service_started
+      ms-fine:
+        condition: service_started
+
+  # MICROSERVICIO DE RESERVAS
+  ms-reservation:
+    build:
+      context: ./ms-reservation
+      dockerfile: Dockerfile
+    container_name: ms-reservation
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-reservations:5432/reservations
+      SPRING_DATASOURCE_USERNAME: reservations
+      SPRING_DATASOURCE_PASSWORD: reservations
+      USER_SERVICE_URL: http://ms-user:5002
+      BOOK_SERVICE_URL: http://ms-book:5001
+      NOTIFICATION_SERVICE_URL: http://ms-notification:5008
+    ports:
+      - "5006:5006"
+    depends_on:
+      postgres-reservations:
+        condition: service_healthy
+      ms-user:
+        condition: service_started
+      ms-book:
+        condition: service_started
+      ms-notification:
+        condition: service_started
+
+  # MICROSERVICIO DE MULTAS
+  ms-fine:
+    build:
+      context: ./ms-fine
+      dockerfile: Dockerfile
+    container_name: ms-fine
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-fine:5432/fines
+      SPRING_DATASOURCE_USERNAME: fines
+      SPRING_DATASOURCE_PASSWORD: fines
+    ports:
+      - "5007:5007"
+    depends_on:
+      postgres-fine:
+        condition: service_healthy
+
+  # MICROSERVICIO DE NOTIFICACIONES
+  ms-notification:
+    build:
+      context: ./ms-notification
+      dockerfile: Dockerfile
+    container_name: ms-notification
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-notifications:5432/notifications
+      SPRING_DATASOURCE_USERNAME: notifications
+      SPRING_DATASOURCE_PASSWORD: notifications
+    ports:
+      - "5008:5008"
+    depends_on:
+      postgres-notifications:
+        condition: service_healthy
+
+  # MICROSERVICIO DE REPORTES
+  ms-report:
+    build:
+      context: ./ms-report
+      dockerfile: Dockerfile
+    container_name: ms-report
+    restart: unless-stopped
+    environment:
+      LOAN_SERVICE_URL: http://ms-loan:5004
+      FINE_SERVICE_URL: http://ms-fine:5007
+    ports:
+      - "5009:5009"
+    depends_on:
+      ms-loan:
+        condition: service_started
+      ms-fine:
+        condition: service_started
+
+  # BFF - ENTRADA PRINCIPAL
+  bff:
+    build:
+      context: ./bff
+      dockerfile: Dockerfile
+    container_name: library-bff
+    restart: unless-stopped
+    environment:
+      AUTH_SERVICE_URL: "http://ms-auth:5003"
+      USER_SERVICE_URL: "http://ms-user:5002"
+      BOOK_SERVICE_URL: "http://ms-book:5001"
+      LOAN_SERVICE_URL: "http://ms-loan:5004"
+      RETURN_SERVICE_URL: "http://ms-return:5005"
+      RESERVATION_SERVICE_URL: "http://ms-reservation:5006"
+      FINE_SERVICE_URL: "http://ms-fine:5007"
+      NOTIFICATION_SERVICE_URL: "http://ms-notification:5008"
+      REPORT_SERVICE_URL: "http://ms-report:5009"
+
+      JWT_SECRET: "mi_clave_super_secreta_muy_larga_12345678901234567890"
+      JWT_EXPIRATION_HOURS: "24"
+
+      # Configuración GlitchTip
+      SENTRY_ENABLED: "${SENTRY_ENABLED:-false}"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-docker}"
+      SENTRY_RELEASE: "${SENTRY_RELEASE:-eva-3-library-bff@1.0.0}"
+      SENTRY_DEBUG: "${SENTRY_DEBUG:-false}"
+    ports:
+      - "5000:5000"
+    depends_on:
+      ms-auth:
+        condition: service_started
+      ms-book:
+        condition: service_started
+      ms-user:
+        condition: service_started
+      ms-loan:
+        condition: service_started
+      ms-return:
+        condition: service_started
+      ms-reservation:
+        condition: service_started
+      ms-fine:
+        condition: service_started
+      ms-notification:
+        condition: service_started
+      ms-report:
+        condition: service_started
 
 volumes:
   postgres_data_book:
   postgres_data_user:
   auth_postgres_data:
-  fine_data:
   postgres_data_loans:
   returns_data:
   reservations_data:
+  fine_data:
   notifications_data:

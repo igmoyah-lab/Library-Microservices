@@ -7,7 +7,6 @@ import com.library.reports.client.LoanClient;
 import com.library.reports.dto.ApiResponse;
 import com.library.reports.dto.GeneralReportResponse;
 
-
 @Service
 public class ReportServiceImpl implements ReportService {
 
@@ -22,16 +21,34 @@ public class ReportServiceImpl implements ReportService {
         this.fineClient = fineClient;
     }
 
+    /**
+     * Genera un resumen general consultando los conteos
+     * disponibles en ms-loan y ms-fine.
+     *
+     * @return respuesta con el reporte general
+     */
     @Override
-    public ApiResponse<GeneralReportResponse> getGeneralSummary() {
+    public ApiResponse<GeneralReportResponse>
+            getGeneralSummary() {
 
-        long totalLoans = loanClient.getTotalLoans();
-        long totalFines = fineClient.getTotalFines();
+        long totalLoans =
+                loanClient.getTotalLoans();
+
+        long totalFines =
+                fineClient.getTotalFines();
+
+        long pendingFines =
+                fineClient.getPendingFines();
+
+        long paidFines =
+                fineClient.getPaidFines();
 
         GeneralReportResponse report =
                 new GeneralReportResponse(
                         totalLoans,
-                        totalFines
+                        totalFines,
+                        pendingFines,
+                        paidFines
                 );
 
         return new ApiResponse<>(
