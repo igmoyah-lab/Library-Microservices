@@ -343,17 +343,25 @@ services:
     container_name: library-bff
     restart: unless-stopped
     environment:
-      AUTH_SERVICE_URL: http://ms-auth:5003
-      USER_SERVICE_URL: http://ms-user:5002
-      BOOK_SERVICE_URL: http://ms-book:5001
-      LOAN_SERVICE_URL: http://ms-loan:5004
-      RETURN_SERVICE_URL: http://ms-return:5005
-      RESERVATION_SERVICE_URL: http://ms-reservation:5006
-      FINE_SERVICE_URL: http://ms-fine:5007
-      NOTIFICATION_SERVICE_URL: http://ms-notification:5008
-      REPORT_SERVICE_URL: http://ms-report:5009
-      JWT_SECRET: mi_clave_super_secreta_muy_larga_12345678901234567890
-      JWT_EXPIRATION_HOURS: 24
+      AUTH_SERVICE_URL: "http://ms-auth:5003"
+      USER_SERVICE_URL: "http://ms-user:5002"
+      BOOK_SERVICE_URL: "http://ms-book:5001"
+      LOAN_SERVICE_URL: "http://ms-loan:5004"
+      RETURN_SERVICE_URL: "http://ms-return:5005"
+      RESERVATION_SERVICE_URL: "http://ms-reservation:5006"
+      FINE_SERVICE_URL: "http://ms-fine:5007"
+      NOTIFICATION_SERVICE_URL: "http://ms-notification:5008"
+      REPORT_SERVICE_URL: "http://ms-report:5009"
+
+      JWT_SECRET: "mi_clave_super_secreta_muy_larga_12345678901234567890"
+      JWT_EXPIRATION_HOURS: "24"
+
+      # Configuración GlitchTip
+      SENTRY_ENABLED: "${SENTRY_ENABLED:-false}"
+      SENTRY_DSN: "${SENTRY_DSN:-}"
+      SENTRY_ENVIRONMENT: "${SENTRY_ENVIRONMENT:-docker}"
+      SENTRY_RELEASE: "${SENTRY_RELEASE:-eva-3-library-bff@1.0.0}"
+      SENTRY_DEBUG: "${SENTRY_DEBUG:-false}"
     ports:
       - "5000:5000"
     depends_on:
